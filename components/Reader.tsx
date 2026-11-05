@@ -25,7 +25,10 @@ const speedLabel = (v: number) => `${v}×`;
 
 type Props = {
   player: Player;
+  /** The original lines */
   lines: string[];
+  /** For translated reads: the translation of each line (null until its batch arrives) */
+  translated: (string | null)[] | null;
   title: string;
   option: VoiceOption;
   /** Set when a backup voice has taken over from the main one */
@@ -53,7 +56,7 @@ function Words({ line, token }: { line: string; token: number }) {
   );
 }
 
-export default function Reader({ player, lines, title, option, backup, onBack, onRetry }: Props) {
+export default function Reader({ player, lines, translated, title, option, backup, onBack, onRetry }: Props) {
   const snap = useSyncExternalStore(player.subscribe, player.getSnapshot, player.getSnapshot);
   const phone = useIsPhone();
   const stageRef = useRef<HTMLElement>(null);
@@ -61,10 +64,14 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
   const [offset, setOffset] = useState(0);
   const [animate, setAnimate] = useState(false);
   const [stageH, setStageH] = useState(0);
+  // Translated reads can show the original text instead (same lines, same highlight).
+  const [view, setView] = useState<"translated" | "original">("translated");
+  const showTranslation = !!translated && view === "translated";
+  const textAt = (i: number) => (showTranslation ? translated![i] : lines[i]);
 
   // While the next line's audio is still being made, keep the last line lit
   // and show the "getting the next lines ready" placeholder after it.
-  const buffering = snap.waiting && snap.lastPlayed === snap.line - 1;
+  const buffering = snap.waiting && snap.line > 0 && snap.lastPlayed === snap.line - 1;
   const shown = buffering ? snap.line - 1 : snap.line;
   const count = lines.length;
   const lineProgress = buffering ? 1 : snap.progress;
@@ -75,7 +82,7 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
     const el = lineRefs.current[shown];
     if (!el || !stageH) return;
     setOffset(stageH / 2 - (el.offsetTop + el.offsetHeight / 2));
-  }, [shown, stageH, buffering, snap.hasWords, phone, lines]);
+  }, [shown, stageH, buffering, snap.hasWords, phone, lines, view, translated?.[shown]]);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -104,7 +111,10 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
   const nextIndex = Math.min(count - 1, snap.line + 1);
   const canSkip = !buffering && snap.line < count - 1 && !snap.failed;
   const resting = snap.failed && snap.failReason === "offline";
-  const status = snap.failed && !resting ? "Offline" : !snap.playing && snap.started ? "Paused" : null;
+  const translationResting =
+    snap.failed && (snap.failReason === "translation" || snap.failReason === "busy" || snap.failReason === "region");
+  const status =
+    snap.failed && !resting && !translationResting ? "Offline" : !snap.playing && snap.started ? "Paused" : null;
   const isAcc = option.kind === "acc";
 
   const cycleSpeed = () => {
@@ -127,9 +137,33 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
           <span className={styles.tile} data-kind={option.kind}>
             {isAcc ? <VoiceBars size={14} /> : <Translate size={14} />}
           </span>
-          {option.name}
+          {isAcc ? (
+            option.name
+          ) : (
+            <>
+              <span className="desk-only">{option.short} voice</span>
+              <span className="phone-only">{option.short}</span>
+            </>
+          )}
           {backup ? " · backup" : ""}
         </span>
+        {translated && (
+          <>
+            <div className="phone-only" style={{ flex: 1 }} />
+            <div role="group" aria-label="Show text" className={styles.toggle}>
+              <button
+                className="caption"
+                aria-pressed={view === "translated"}
+                onClick={() => setView("translated")}
+              >
+                {option.short}
+              </button>
+              <button className="caption" aria-pressed={view === "original"} onClick={() => setView("original")}>
+                Original
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       {backup && !snap.failed && (
@@ -160,7 +194,25 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
         </div>
       )}
 
-      {snap.failed && !resting && (
+      {translationResting && (
+        <div className={`${styles.note} ${styles.noteCentered}`} role="status">
+          <Moon size={18} style={{ marginTop: 1 }} />
+          <div className={styles.noteText}>
+            <span className="subtle" style={{ fontWeight: 600 }}>
+              Translation is resting
+            </span>
+            <span className="caption" style={{ color: "var(--ink-muted)" }}>
+              Paused on this line. Retry in a few minutes, or try an accent.
+            </span>
+          </div>
+          <button className={`${styles.retry} caption`} onClick={onRetry}>
+            <Retry size={14} />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {snap.failed && !resting && !translationResting && (
         <div className={`${styles.note} ${styles.noteDanger}`} role="alert">
           <WifiOff size={18} style={{ color: "var(--danger)" }} />
           <div className={styles.noteText}>
@@ -184,7 +236,8 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
           className={styles.track}
           style={{ transform: `translateY(${offset}px)`, transition: animate ? undefined : "none" }}
         >
-          {lines.map((line, i) => {
+          {lines.map((_, i) => {
+            const line = textAt(i);
             if (buffering && i >= snap.line) {
               if (i > snap.line) return null;
               return (
@@ -200,7 +253,8 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
               );
             }
             const current = i === shown;
-            const withWords = current && snap.hasWords && !buffering;
+            // Word highlighting follows the spoken (translated) text only.
+            const withWords = current && snap.hasWords && !buffering && (!translated || showTranslation);
             const state = i < shown ? "past" : current ? "current" : "next";
             return (
               <button
@@ -214,7 +268,15 @@ export default function Reader({ player, lines, title, option, backup, onBack, o
                 aria-current={current || undefined}
                 onClick={() => player.seek(i, true)}
               >
-                <span className={styles.lnText}>{withWords ? <Words line={line} token={snap.token} /> : line}</span>
+                <span className={styles.lnText}>
+                  {line == null ? (
+                    <span className={styles.skLine} aria-label="Translating…" />
+                  ) : withWords ? (
+                    <Words line={line} token={snap.token} />
+                  ) : (
+                    line
+                  )}
+                </span>
                 {!current && (
                   <span className={`${styles.jump} caption`} aria-hidden="true">
                     <PlayIcon size={14} />

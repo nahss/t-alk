@@ -206,3 +206,37 @@ textarea.body {
     animation: none;
   }
 }
+
+/* Screen-to-screen motion (View Transitions). The logo, hero circle and the
+   text box glide into their places on the next screen; everything else crossfades. */
+::view-transition-group(talk-mark),
+::view-transition-group(talk-word),
+::view-transition-group(talk-hero),
+::view-transition-group(talk-card) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+::view-transition-image-pair(talk-mark),
+::view-transition-image-pair(talk-word),
+::view-transition-image-pair(talk-hero),
+::view-transition-image-pair(talk-card) {
+  animation-name: talk-soften;
+}
+@keyframes talk-soften {
+  40% {
+    filter: blur(2px);
+  }
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 320ms;
+  animation-timing-function: ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

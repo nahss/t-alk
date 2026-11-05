@@ -86,6 +86,42 @@
   color: var(--iris);
 }
 
+/* Translated / Original switch (desktop values; phones below) */
+.toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 9999px;
+  background: var(--surface-sunken);
+  flex: none;
+}
+
+.toggle button {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.toggle button[aria-pressed="true"] {
+  background: var(--surface-raised);
+  color: var(--ink);
+}
+
+/* A line whose translation hasn't arrived yet */
+.skLine {
+  display: block;
+  height: 16px;
+  width: 70%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--surface-sunken) 0%, var(--line-strong) 50%, var(--surface-sunken) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
 /* Small honest notes (connection lost, backup voice…) */
 .note {
   width: calc(100% - 80px);
@@ -409,7 +445,8 @@
   .track {
     transition: none;
   }
-  .sk {
+  .sk,
+  .skLine {
     animation: none;
   }
 }
@@ -423,6 +460,14 @@
   }
   .chip {
     padding: 0 10px 0 7px;
+  }
+  .toggle {
+    gap: 2px;
+    padding: 3px;
+  }
+  .toggle button {
+    height: 38px;
+    padding: 0 12px;
   }
   .note {
     width: auto;

@@ -19,10 +19,10 @@ export default function Preparing({ steps, onCancel }: { steps: Step[]; onCancel
             onCancel();
           }}
         >
-          <span className={styles.brandDot}>
-            <LogoBars />
-          </span>
-          <span className={styles.brandName}>Talk</span>
+            <span className={styles.brandDot}>
+              <LogoBars />
+            </span>
+            <span className={styles.brandName}>Talk</span>
         </Link>
       </header>
 

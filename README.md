@@ -24,7 +24,9 @@ There are two kinds of voice option.
 - French
 - German
 
-Talk works out which language your text is in by itself. If your text is already in the language you picked, Talk skips the translation and reads it as it is.
+Talk works out which language your text is in by itself. If your text is already in the language you picked, Talk skips the translation and reads it as it is. Mixed texts are translated line by line: lines already in the chosen language are left exactly as written.
+
+Language options aren't available to visitors in the EU/EEA, the UK or Switzerland, because Google's free Gemini tier can't be offered there. Accents work everywhere.
 
 ## How playback works
 
@@ -48,7 +50,8 @@ If a voice is busy or down, Talk moves to the next voice in that option's list a
 
 - No accounts and no sign-up.
 - Your text and the audio are **never stored**.
-- To read your text aloud, Talk sends it to the services that do the work: Google Gemini (language check and translation), Microsoft Edge's voice service, and YarnGPT (voices). Kokoro runs in your own browser.
+- To read your text aloud, Talk sends it to the services that do the work: Google Gemini (language check and translation), Microsoft Edge's voice service, and YarnGPT (voices). Kokoro runs in your own browser. Only a short sample is sent for the language check, and translation happens a batch of lines at a time as you listen.
+- To decide whether language options can be shown, Talk reads your country from its host's request header for that one request. It's never stored.
 - Talk keeps a small anonymous log with one row per text read: the time, the option picked, the voice that was actually used, the word count, whether it was typed or a PDF, and the detected language. It never logs the text, the audio, names or IP addresses.
 - The only number shown publicly is the total count of texts read.
 

@@ -3,43 +3,9 @@
 import { edgeSpeak } from "@/lib/tts/edge";
 import { yarnSpeak, YarnError } from "@/lib/tts/yarngpt";
 import { SPEAK_VOICES } from "@/lib/options";
+import { fromOurSite, json, simulatedDown } from "@/lib/server/request";
 
 const MAX_CHARS = 600;
-
-/** Only accept requests from Talk's own pages (stops other sites using it). */
-function fromOurSite(request: Request) {
-  const site = request.headers.get("sec-fetch-site");
-  if (site && site !== "same-origin") return false;
-  const origin = request.headers.get("origin");
-  if (origin) {
-    try {
-      return new URL(origin).host === new URL(request.url).host;
-    } catch {
-      return false;
-    }
-  }
-  return true;
-}
-
-/**
- * Local testing only. TALK_SIMULATE_DOWN=edge,yarngpt makes those engines fail;
- * "edge@3" lets the first 3 requests through, then fails (a voice dropping mid-read).
- */
-const simulatedCalls: Record<string, number> = {};
-function simulatedDown(engine: string) {
-  if (process.env.NODE_ENV === "production") return false;
-  for (const rule of (process.env.TALK_SIMULATE_DOWN ?? "").split(",")) {
-    const [name, after] = rule.trim().split("@");
-    if (name !== engine) continue;
-    if (!after) return true;
-    simulatedCalls[engine] = (simulatedCalls[engine] ?? 0) + 1;
-    return simulatedCalls[engine] > Number(after);
-  }
-  return false;
-}
-
-const json = (body: unknown, status = 200) =>
-  Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function POST(request: Request) {
   if (!fromOurSite(request)) return json({ error: "Not allowed" }, 403);

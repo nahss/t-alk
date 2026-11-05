@@ -4,6 +4,11 @@ import { alignTimings, tokenAt, type WordTiming } from "./align";
 
 export type LineAudio = { url: string; words: WordTiming[] | null };
 export type FetchLine = (index: number) => Promise<LineAudio>;
+/** network = the listener's connection; offline = every voice is down;
+ *  translation = Gemini's free allowance is used up; busy = Gemini is overloaded for now;
+ *  region = translation isn't offered here. */
+export type FailReason = "network" | "offline" | "translation" | "busy" | "region";
+const NO_RETRY = new Set(["offline", "translation", "busy", "region"]);
 
 export type PlayerSnapshot = {
   /** Line being read (or about to be) */
@@ -24,7 +29,7 @@ export type PlayerSnapshot = {
   /** Couldn't get audio for this line, even after a retry */
   failed: boolean;
   /** Why: the listener's connection, or every voice for this option is down */
-  failReason: "network" | "offline" | null;
+  failReason: FailReason | null;
   speed: number;
   /** Bumps whenever a line's audio becomes ready */
   readyVersion: number;
@@ -68,6 +73,8 @@ export class Player {
     private lines: string[],
     private fetchLine: FetchLine,
     private audio: HTMLAudioElement,
+    /** The text actually spoken for line i (the translation, for translated reads) */
+    private textOf: (i: number) => string = (i) => lines[i],
   ) {
     audio.onended = () => {
       // Only our own line finishing counts (not the silent unlock sound).
@@ -218,8 +225,8 @@ export class Player {
     let p = this.pending.get(i);
     if (!p) {
       p = this.fetchLine(i).catch(async (err) => {
-        // Every voice is down: retrying won't help.
-        if ((err as { kind?: string })?.kind === "offline") throw err;
+        // Every voice is down, or translation can't run: retrying won't help.
+        if (NO_RETRY.has((err as { kind?: string })?.kind ?? "")) throw err;
         await delay(800);
         return this.fetchLine(i);
       });
@@ -259,13 +266,16 @@ export class Player {
     try {
       a = await this.ensure(i)!;
     } catch (err) {
-      if (g === this.gen) this.fail((err as { kind?: string })?.kind === "offline" ? "offline" : "network");
+      if (g === this.gen) {
+        const kind = (err as { kind?: string })?.kind;
+        this.fail(kind && NO_RETRY.has(kind) ? (kind as FailReason) : "network");
+      }
       return;
     }
     if (g !== this.gen || this.destroyed) return;
 
     this.words = a.words?.length ? a.words : null;
-    this.map = this.words ? alignTimings(this.lines[i].split(/\s+/), this.words) : [];
+    this.map = this.words ? alignTimings(this.textOf(i).split(/\s+/), this.words) : [];
     this.quietPause();
     this.loadedLine = i;
     this.audio.src = a.url;
@@ -282,7 +292,7 @@ export class Player {
     this.startTicker();
   }
 
-  private fail(reason: "network" | "offline" = "network") {
+  private fail(reason: FailReason = "network") {
     this.stopTicker();
     this.quietPause();
     this.set({ waiting: false, failed: true, failReason: reason, playing: false });

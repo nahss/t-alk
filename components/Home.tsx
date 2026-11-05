@@ -13,6 +13,7 @@ import {
   FileX,
   Lock,
   LogoBars,
+  Moon,
   PlayIcon,
   Spinner,
   Translate,
@@ -21,6 +22,9 @@ import {
   WifiOff,
 } from "./icons";
 import { useIsPhone } from "./useIsPhone";
+import type { LangState } from "./TalkApp";
+import type { Detected } from "@/lib/translate";
+import { alreadyIn, TARGETS } from "@/lib/languages";
 import styles from "./home.module.css";
 
 export type PdfState =
@@ -45,6 +49,10 @@ type Props = {
   offline: Set<string>;
   /** The option that just turned out to be offline (shows the hint) */
   offlineNotice: string | null;
+  /** Whether language options (translation) can be used right now */
+  langState: LangState;
+  /** The text's language, once Talk has worked it out */
+  detected: Detected | null;
 };
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -69,12 +77,12 @@ function pdfProblem(p: PdfState): string {
   }
 }
 
-function fileSub(p: PdfState): ReactNode {
+function fileSub(p: PdfState, detected: Detected | null): ReactNode {
   switch (p.status) {
     case "reading":
       return "Reading…";
     case "ok":
-      return pages(p.pages);
+      return detected ? `${pages(p.pages)} · looks like ${detected.name}` : pages(p.pages);
     case "scanned":
       return `${pages(p.pages)} · 0 words found`;
     case "locked":
@@ -86,7 +94,21 @@ function fileSub(p: PdfState): ReactNode {
   }
 }
 
-export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pick, onPick, onPlay, offline, offlineNotice }: Props) {
+export default function Home({
+  text,
+  onText,
+  pdf,
+  onFile,
+  onRemovePdf,
+  words,
+  pick,
+  onPick,
+  onPlay,
+  offline,
+  offlineNotice,
+  langState,
+  detected,
+}: Props) {
   const phone = useIsPhone();
   const [panelOpen, setPanelOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -100,12 +122,25 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
   const over = words > WORD_LIMIT;
   const pdfError = isPdfError(pdf);
   const reading = pdf?.status === "reading";
+  /** Why an option can't be picked right now ("" if it can) */
+  const unavailable = (id: string, kind: string) =>
+    !LIVE.has(id)
+      ? "Coming soon"
+      : offline.has(id)
+        ? "Offline for now"
+        : kind === "lang" && langState === "resting"
+          ? "Resting, back tomorrow"
+          : kind === "lang" && langState === "blocked"
+            ? "Not available here"
+            : "";
   const ready =
-    words > 0 && !over && !!picked && LIVE.has(picked.id) && !offline.has(picked.id) && !pdfError && !reading;
+    words > 0 && !over && !!picked && !unavailable(picked.id, picked.kind) && !pdfError && !reading;
+  const target = picked?.kind === "lang" ? TARGETS[picked.id] : null;
 
   // Hint under the box
   let hint: ReactNode = "";
   let hintDanger = false;
+  let hintIcon: ReactNode = null;
   if (pdf && pdfError) {
     hint = pdfProblem(pdf);
     hintDanger = true;
@@ -114,8 +149,14 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
     hintDanger = true;
   } else if (offlineNotice) {
     hint = `${optionById(offlineNotice)?.short ?? "That voice"} is taking a break while we fix it. Try another voice.`;
+  } else if (langState === "resting" && (!picked || picked.kind === "lang")) {
+    hint = "Translation is resting, try an accent";
+    hintIcon = <Moon size={14} />;
+  } else if (target && detected && alreadyIn(detected.code, target)) {
+    hint = `Already in ${target.short} — reading as-is`;
+    hintIcon = <Check size={14} />;
   } else if (words > 0 && !picked) {
-    hint = "Pick a voice above to play.";
+    hint = detected ? `Looks like ${detected.name}. Pick a voice above to play.` : "Pick a voice above to play.";
   }
 
   // All voices panel: Escape closes it, focus moves in and back out.
@@ -201,10 +242,10 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
 
       <header className={styles.header}>
         <Link href="/" className={styles.brand}>
-          <span className={styles.brandTile}>
-            <LogoBars size={phone ? 17 : 18} />
-          </span>
-          <span className={styles.brandName}>Talk</span>
+            <span className={styles.brandTile}>
+              <LogoBars size={phone ? 17 : 18} />
+            </span>
+            <span className={styles.brandName}>Talk</span>
         </Link>
         <nav aria-label="Site" className={styles.nav}>
           {/* The "texts read" counter arrives with Phase 6 (Supabase). */}
@@ -221,11 +262,11 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
       <main className={styles.main}>
         <div className={styles.column}>
           <div className={styles.hero}>
-            <div aria-hidden="true" className={styles.heroRing}>
-              <span className={styles.heroDot}>
-                <LogoBars size={phone ? 20 : 24} />
-              </span>
-            </div>
+              <div aria-hidden="true" className={styles.heroRing}>
+                <span className={styles.heroDot}>
+                  <LogoBars size={phone ? 20 : 24} />
+                </span>
+              </div>
             <h1 className="display">
               Got something to read?
               <br />
@@ -248,15 +289,15 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
               {HOME_CARDS.map((id) => {
                 const o = optionById(id)!;
                 const on = pick === id;
-                const live = LIVE.has(id);
-                const down = offline.has(id);
+                const why = unavailable(id, o.kind);
+                const down = why === "Offline for now";
                 return (
                   <button
                     key={id}
                     className={styles.vcard}
                     aria-pressed={on}
                     data-on={on || undefined}
-                    disabled={!live || down}
+                    disabled={!!why}
                     aria-describedby={down ? `${id}-off` : undefined}
                     onClick={() => onPick(id)}
                   >
@@ -269,7 +310,7 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
                         </span>
                       ) : (
                         <span className="caption" style={{ color: "var(--ink-muted)" }}>
-                          {!live ? "Coming soon" : phone ? o.subMobile : o.sub}
+                          {why || (phone ? o.subMobile : o.sub)}
                         </span>
                       )}
                     </span>
@@ -284,107 +325,107 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
             </div>
           </section>
 
-          <div
-            className={styles.composer}
-            data-danger={over || pdfError || undefined}
-            {...(phone ? {} : dragHandlers)}
-          >
-            {dragging ? (
-              <div className={`${styles.field} ${styles.drop}`}>
-                <Upload size={24} />
-                <span className="body-strong">Drop your PDF to read it</span>
-                <span className="caption" style={{ color: "var(--ink-muted)" }}>
-                  Text-only PDFs, up to 20,000 words
-                </span>
-              </div>
-            ) : pdf ? (
-              <div className={styles.field}>
-                <div className={styles.fileRow}>
-                  <span
-                    className={styles.ftile}
-                    data-danger={pdfError || undefined}
-                  >
-                    {pdf.status === "reading" ? (
-                      <Spinner />
-                    ) : pdf.status === "locked" ? (
-                      <Lock />
-                    ) : pdfError ? (
-                      <FileX />
-                    ) : (
-                      <FileIcon />
-                    )}
+            <div
+              className={styles.composer}
+              data-danger={over || pdfError || undefined}
+              {...(phone ? {} : dragHandlers)}
+            >
+              {dragging ? (
+                <div className={`${styles.field} ${styles.drop}`}>
+                  <Upload size={24} />
+                  <span className="body-strong">Drop your PDF to read it</span>
+                  <span className="caption" style={{ color: "var(--ink-muted)" }}>
+                    Text-only PDFs, up to 20,000 words
                   </span>
-                  <div className={styles.fileText}>
-                    <div className="body-strong">{pdf.name}</div>
-                    <div className="caption" style={{ color: "var(--ink-muted)" }}>
-                      {fileSub(pdf)}
-                    </div>
-                  </div>
-                  <button className={styles.x} aria-label="Remove PDF" onClick={onRemovePdf}>
-                    <Close />
-                  </button>
                 </div>
-                {!pdfError && <div className={`${styles.fieldCount} phone-only`}>{countEl}</div>}
-              </div>
-            ) : (
-              <div className={styles.field}>
-                <label htmlFor="talk-text" className="sr">
-                  Text to read aloud
-                </label>
-                <textarea
-                  id="talk-text"
-                  className={`${styles.textarea} body`}
-                  value={text}
-                  onChange={(e) => onText(e.target.value)}
-                  placeholder={phone ? "Paste your text here…" : "Paste your text here, or drop a PDF on this box…"}
-                />
-                <div className={`${styles.fieldCount} phone-only`}>{countEl}</div>
-              </div>
-            )}
+              ) : pdf ? (
+                <div className={styles.field}>
+                  <div className={styles.fileRow}>
+                    <span
+                      className={styles.ftile}
+                      data-danger={pdfError || undefined}
+                    >
+                      {pdf.status === "reading" ? (
+                        <Spinner />
+                      ) : pdf.status === "locked" ? (
+                        <Lock />
+                      ) : pdfError ? (
+                        <FileX />
+                      ) : (
+                        <FileIcon />
+                      )}
+                    </span>
+                    <div className={styles.fileText}>
+                      <div className="body-strong">{pdf.name}</div>
+                      <div className="caption" style={{ color: "var(--ink-muted)" }}>
+                        {fileSub(pdf, detected)}
+                      </div>
+                    </div>
+                    <button className={styles.x} aria-label="Remove PDF" onClick={onRemovePdf}>
+                      <Close />
+                    </button>
+                  </div>
+                  {!pdfError && <div className={`${styles.fieldCount} phone-only`}>{countEl}</div>}
+                </div>
+              ) : (
+                <div className={styles.field}>
+                  <label htmlFor="talk-text" className="sr">
+                    Text to read aloud
+                  </label>
+                  <textarea
+                    id="talk-text"
+                    className={`${styles.textarea} body`}
+                    value={text}
+                    onChange={(e) => onText(e.target.value)}
+                    placeholder={phone ? "Paste your text here…" : "Paste your text here, or drop a PDF on this box…"}
+                  />
+                  <div className={`${styles.fieldCount} phone-only`}>{countEl}</div>
+                </div>
+              )}
 
-            {dragging ? (
-              <div className={styles.bar} style={{ opacity: 0.4 }} aria-hidden="true">
-                <span className={`${styles.tool} caption`}>Upload PDF</span>
-                <div style={{ flex: 1 }} />
-                <span className="caption" style={{ color: "var(--ink-muted)" }}>
-                  {fmt(words)} / 20,000 words
-                </span>
-              </div>
-            ) : pdfError ? (
-              <div className={styles.bar}>
-                <button className={`${styles.tool} caption`} onClick={chooseFile}>
-                  Try another PDF
-                </button>
-                <div style={{ flex: 1 }} />
-                {playButton}
-              </div>
-            ) : (
-              <div className={styles.bar}>
-                <button className={`${styles.tool} caption`} onClick={chooseFile} aria-label={phone ? (pdf ? "Replace PDF" : "Upload PDF") : undefined}>
-                  <FileIcon size={phone ? 15 : 16} />
-                  <span className="desk-only">{pdf ? "Replace PDF" : "Upload PDF"}</span>
-                  <span className="phone-only">PDF</span>
-                </button>
-                <button
-                  className={`${styles.tool} caption`}
-                  style={{ color: picked ? "var(--ink)" : "var(--ink-muted)" }}
-                  onClick={openPanel}
-                >
-                  <VoiceBars size={phone ? 15 : 16} />
-                  {picked ? picked.name : "No voice yet"}
-                </button>
-                <div style={{ flex: 1 }} />
-                <span className="desk-only">{countEl}</span>
-                {playButton}
-              </div>
-            )}
-          </div>
+              {dragging ? (
+                <div className={styles.bar} style={{ opacity: 0.4 }} aria-hidden="true">
+                  <span className={`${styles.tool} caption`}>Upload PDF</span>
+                  <div style={{ flex: 1 }} />
+                  <span className="caption" style={{ color: "var(--ink-muted)" }}>
+                    {fmt(words)} / 20,000 words
+                  </span>
+                </div>
+              ) : pdfError ? (
+                <div className={styles.bar}>
+                  <button className={`${styles.tool} caption`} onClick={chooseFile}>
+                    Try another PDF
+                  </button>
+                  <div style={{ flex: 1 }} />
+                  {playButton}
+                </div>
+              ) : (
+                <div className={styles.bar}>
+                  <button className={`${styles.tool} caption`} onClick={chooseFile} aria-label={phone ? (pdf ? "Replace PDF" : "Upload PDF") : undefined}>
+                    <FileIcon size={phone ? 15 : 16} />
+                    <span className="desk-only">{pdf ? "Replace PDF" : "Upload PDF"}</span>
+                    <span className="phone-only">PDF</span>
+                  </button>
+                  <button
+                    className={`${styles.tool} caption`}
+                    style={{ color: picked ? "var(--ink)" : "var(--ink-muted)" }}
+                    onClick={openPanel}
+                  >
+                    <VoiceBars size={phone ? 15 : 16} />
+                    {picked ? picked.name : "No voice yet"}
+                  </button>
+                  <div style={{ flex: 1 }} />
+                  <span className="desk-only">{countEl}</span>
+                  {playButton}
+                </div>
+              )}
+            </div>
           <p
             className={`${styles.hint} caption`}
             style={{ color: hintDanger ? "var(--danger)" : "var(--ink-muted)" }}
             role={hintDanger ? "alert" : undefined}
           >
-            {hintDanger && <Alert size={14} />}
+            {hintDanger ? <Alert size={14} /> : hintIcon}
             {hint}
           </p>
 
@@ -449,15 +490,14 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
                 <div className={styles.optGrid}>
                   {OPTIONS.filter((o) => o.kind === kind).map((o) => {
                     const on = pick === o.id;
-                    const soon = !LIVE.has(o.id);
-                    const down = offline.has(o.id);
+                    const why = unavailable(o.id, o.kind);
                     return (
                       <button
                         key={o.id}
                         className={styles.opt}
                         aria-pressed={on}
                         data-on={on || undefined}
-                        disabled={soon || down}
+                        disabled={!!why}
                         onClick={() => {
                           onPick(o.id);
                           closePanel();
@@ -465,7 +505,7 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
                       >
                         <span className="body-strong">{o.short}</span>
                         <span className="caption" style={{ color: "var(--ink-muted)" }}>
-                          {soon ? "Coming soon" : down ? "Offline for now" : o.hint}
+                          {why || o.hint}
                         </span>
                       </button>
                     );

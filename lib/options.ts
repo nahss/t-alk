@@ -26,8 +26,8 @@ const edge = (voice: string): ChainStep => ({ engine: "edge", voice });
 
 export const OPTIONS: VoiceOption[] = [
   { id: "pidgin", kind: "lang", short: "Pidgin", name: "Pidgin", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“How you dey?”", chain: [] },
-  { id: "es", kind: "lang", short: "Spanish", name: "Spanish", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“¿Qué tal?”", chain: [] },
-  { id: "fr", kind: "lang", short: "French", name: "French", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“Ça va ?”", chain: [] },
+  { id: "es", kind: "lang", short: "Spanish", name: "Spanish", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“¿Qué tal?”", chain: [edge("es-ES-ElviraNeural")] },
+  { id: "fr", kind: "lang", short: "French", name: "French", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“Ça va ?”", chain: [edge("fr-FR-DeniseNeural")] },
   {
     id: "ng",
     kind: "acc",
@@ -56,8 +56,8 @@ export const OPTIONS: VoiceOption[] = [
 /** The three cards in the home screen's "Pick a voice" row, as designed. */
 export const HOME_CARDS = ["pidgin", "ng", "gb"];
 
-/** Options that work right now. Phase 3: all five accents. Phases 4–5 add the languages. */
-export const LIVE = new Set(["ng", "gb", "es-acc", "fr-acc", "de"]);
+/** Options that work right now. Phase 4 adds Spanish and French; Phase 5 adds Pidgin. */
+export const LIVE = new Set(["es", "fr", "ng", "gb", "es-acc", "fr-acc", "de"]);
 
 export const optionById = (id: string | null | undefined) => OPTIONS.find((o) => o.id === id) ?? null;
 

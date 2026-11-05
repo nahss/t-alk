@@ -49,6 +49,7 @@
 }
 
 .brandTile {
+  view-transition-name: talk-mark;
   width: 36px;
   height: 36px;
   border-radius: 12px;
@@ -60,6 +61,7 @@
 }
 
 .brandName {
+  view-transition-name: talk-word;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -130,6 +132,7 @@
 }
 
 .heroRing {
+  view-transition-name: talk-hero;
   width: 76px;
   height: 76px;
   border-radius: 9999px;
@@ -255,6 +258,7 @@
 
 /* Text box ("composer") */
 .composer {
+  view-transition-name: talk-card;
   margin-top: 16px;
   background: var(--surface-sunken);
   border: 1px solid var(--line);
