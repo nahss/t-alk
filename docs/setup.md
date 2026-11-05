@@ -14,7 +14,7 @@ As you go, keep the keys in a temporary note. Delete the note once Part 5 is don
 2. If it shows terms of service, read them and accept if you're happy to.
 3. Click **Get API key**. It's in the left sidebar, or at the bottom left on some screens.
 4. Click **Create API key**. If it asks which Google Cloud project to use, pick the one it suggests or choose **Create in new project**.
-5. Copy the key. It starts with `AIza`. Put it in your note, labelled **GEMINI_API_KEY**.
+5. Copy the key. It starts with `AQ.` (older keys start with `AIza`). Put it in your note, labelled **GEMINI_API_KEY**.
 6. Don't click anything about billing or upgrading. Talk uses the free tier.
 
 > Worth knowing: on the free tier, Google's terms say it may use the text it receives to improve its products, and that human reviewers may read it. Google also asks developers not to send sensitive or personal information.

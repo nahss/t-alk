@@ -12,14 +12,15 @@ mode="staged"
 
 # Specific key formats, plus env-style lines (NAME_KEY=value) that have a value.
 patterns=(
-  'AIza[0-9A-Za-z_-]{30,}'                                  # Google / Gemini API key
+  'AIza[0-9A-Za-z_-]{30,}'                                  # Google / Gemini API key (older format)
+  'AQ\.[0-9A-Za-z_-]{30,}'                                  # Google / Gemini API key (newer format)
   'sb_(secret|publishable)_[0-9A-Za-z_-]{10,}'              # Supabase keys
   'eyJ[0-9A-Za-z_-]{10,}\.eyJ[0-9A-Za-z_-]{10,}'            # JWTs (e.g. legacy Supabase keys)
   'gh[pousr]_[0-9A-Za-z]{30,}'                              # GitHub tokens
-  'sk-[0-9A-Za-z_-]{20,}'                                   # "sk-" style secret keys
+  'sk[-_][0-9A-Za-z_.-]{20,}'                               # "sk-" / "sk_" style keys (e.g. YarnGPT)
   '-----BEGIN [A-Z ]*PRIVATE KEY-----'                      # private keys
   '^[A-Z0-9_]*(KEY|SECRET|TOKEN|PASSWORD)[A-Z0-9_]*=[^[:space:]#]+'  # NAME_KEY=value lines
-  "['\"][0-9A-Za-z_-]{40,}['\"]"                            # long random-looking quoted strings
+  "['\"][0-9A-Za-z_.-]{40,}['\"]"                           # long random-looking quoted strings
 )
 
 if [ "$mode" = "all" ]; then
