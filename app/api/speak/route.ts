@@ -19,6 +19,8 @@ export async function POST(request: Request) {
     return json({ error: "Unknown voice." }, 400);
   }
   if (simulatedDown(engine)) return json({ error: "voice_unavailable" }, 502);
+  if (engine === "yarngpt" && simulatedDown("yarngpt-resting")) return json({ error: "voice_resting", until: "tomorrow" }, 503);
+  if (engine === "yarngpt" && simulatedDown("yarngpt-credits")) return json({ error: "voice_resting", until: "soon" }, 503);
 
   try {
     if (engine === "edge") {
@@ -30,7 +32,8 @@ export async function POST(request: Request) {
   } catch (err) {
     // Out of credits or over the daily limit: this voice is resting, not broken.
     if (err instanceof YarnError && (err.code === "OUT_OF_CREDITS" || err.code === "RATE_LIMITED")) {
-      return json({ error: "voice_resting" }, 503);
+      // Daily limit → back tomorrow. Credits used up for the month → back soon.
+      return json({ error: "voice_resting", until: err.code === "RATE_LIMITED" ? "tomorrow" : "soon" }, 503);
     }
     return json({ error: "voice_unavailable" }, 502);
   }

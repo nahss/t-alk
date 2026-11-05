@@ -334,6 +334,7 @@ export default function TalkApp() {
 
   if (screen === "reader" && session) {
     const backupStep = voiceIndex > 0 ? session.option.chain[voiceIndex] : null;
+    const mainSkip = voiceIndex > 0 ? session.chain.skipped[0] ?? "down" : null;
     return (
       <Reader
         player={session.player}
@@ -342,6 +343,8 @@ export default function TalkApp() {
         title={session.title}
         option={session.option}
         backup={backupStep}
+        mainEngine={session.option.chain[0]?.engine ?? null}
+        mainSkip={mainSkip}
         onBack={goHome}
         onRetry={onRetry}
       />

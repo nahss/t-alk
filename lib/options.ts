@@ -25,7 +25,19 @@ export type VoiceOption = {
 const edge = (voice: string): ChainStep => ({ engine: "edge", voice });
 
 export const OPTIONS: VoiceOption[] = [
-  { id: "pidgin", kind: "lang", short: "Pidgin", name: "Pidgin", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“How you dey?”", chain: [] },
+  {
+    id: "pidgin",
+    kind: "lang",
+    short: "Pidgin",
+    name: "Pidgin",
+    sub: "Translated, then read",
+    subMobile: "Translated, then read",
+    hint: "“How you dey?”",
+    // Edge's Nigerian voice reads the Pidgin translation (fast, with word timings).
+    // YarnGPT has very few free credits, so it's the backup; Kokoro is the last resort.
+    // To put YarnGPT first again (e.g. after buying credits), swap the first two steps.
+    chain: [edge("en-NG-EzinneNeural"), { engine: "yarngpt", voice: "idera" }, { engine: "kokoro", voice: "af_heart" }],
+  },
   { id: "es", kind: "lang", short: "Spanish", name: "Spanish", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“¿Qué tal?”", chain: [edge("es-ES-ElviraNeural")] },
   { id: "fr", kind: "lang", short: "French", name: "French", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“Ça va ?”", chain: [edge("fr-FR-DeniseNeural")] },
   {
@@ -56,8 +68,8 @@ export const OPTIONS: VoiceOption[] = [
 /** The three cards in the home screen's "Pick a voice" row, as designed. */
 export const HOME_CARDS = ["pidgin", "ng", "gb"];
 
-/** Options that work right now. Phase 4 adds Spanish and French; Phase 5 adds Pidgin. */
-export const LIVE = new Set(["es", "fr", "ng", "gb", "es-acc", "fr-acc", "de"]);
+/** Options that work right now: all eight. */
+export const LIVE = new Set(["pidgin", "es", "fr", "ng", "gb", "es-acc", "fr-acc", "de"]);
 
 export const optionById = (id: string | null | undefined) => OPTIONS.find((o) => o.id === id) ?? null;
 

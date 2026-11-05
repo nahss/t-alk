@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Player } from "@/lib/player";
-import type { ChainStep, VoiceOption } from "@/lib/options";
+import type { ChainStep, EngineId, VoiceOption } from "@/lib/options";
+import type { SkipReason } from "@/lib/speak";
 import {
   ArrowLeft,
   BackLine,
@@ -33,6 +34,9 @@ type Props = {
   option: VoiceOption;
   /** Set when a backup voice has taken over from the main one */
   backup: ChainStep | null;
+  /** The main voice's engine, and why it was skipped (if a backup is reading) */
+  mainEngine: EngineId | null;
+  mainSkip: SkipReason | null;
   onBack: () => void;
   /** Try again (from the main voice, if every voice had stopped) */
   onRetry: () => void;
@@ -56,7 +60,18 @@ function Words({ line, token }: { line: string; token: number }) {
   );
 }
 
-export default function Reader({ player, lines, translated, title, option, backup, onBack, onRetry }: Props) {
+export default function Reader({
+  player,
+  lines,
+  translated,
+  title,
+  option,
+  backup,
+  mainEngine,
+  mainSkip,
+  onBack,
+  onRetry,
+}: Props) {
   const snap = useSyncExternalStore(player.subscribe, player.getSnapshot, player.getSnapshot);
   const phone = useIsPhone();
   const stageRef = useRef<HTMLElement>(null);
@@ -166,14 +181,32 @@ export default function Reader({ player, lines, translated, title, option, backu
         )}
       </header>
 
-      {backup && !snap.failed && (
+      {backup && !snap.failed && mainEngine === "yarngpt" && mainSkip && mainSkip !== "down" ? (
+        // The YarnGPT Pidgin voice has used up its free allowance (design: "Pidgin voice resting").
         <div className={styles.note} role="status">
-          <Info size={18} style={{ marginTop: 1 }} />
-          <span className="subtle">
-            Our main {option.short} voice is busy, so a backup is reading.
-            {backup.engine === "kokoro" ? " It may sound a little flat." : ""}
-          </span>
+          <Moon size={18} style={{ marginTop: 1 }} />
+          <div className={styles.noteText}>
+            <span className="subtle" style={{ fontWeight: 600 }}>
+              {option.short} voice is resting, back {mainSkip === "resting-today" ? "tomorrow" : "soon"}
+            </span>
+            <span className="caption" style={{ color: "var(--ink-muted)" }}>
+              {backup.engine === "kokoro"
+                ? `Your ${option.short} text is reading in a backup voice for now. It may sound a little flat.`
+                : `Your ${option.short} text is reading in the Nigerian accent for now.`}
+            </span>
+          </div>
         </div>
+      ) : (
+        backup &&
+        !snap.failed && (
+          <div className={styles.note} role="status">
+            <Info size={18} style={{ marginTop: 1 }} />
+            <span className="subtle">
+              Our main {option.short} voice is busy, so a backup is reading.
+              {backup.engine === "kokoro" ? " It may sound a little flat." : ""}
+            </span>
+          </div>
+        )
       )}
 
       {resting && (

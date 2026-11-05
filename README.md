@@ -40,7 +40,7 @@ If a voice is busy or down, Talk moves to the next voice in that option's list a
 
 | Option | Tried in this order |
 | --- | --- |
-| Nigerian Pidgin | YarnGPT Pidgin → Microsoft Edge Nigerian English → Kokoro English (in your browser) |
+| Nigerian Pidgin | Microsoft Edge Nigerian English → YarnGPT → Kokoro English (in your browser) |
 | Spanish, French (languages) | Microsoft Edge voice in that language |
 | British accent | Microsoft Edge British → Kokoro British (in your browser) |
 | Nigerian accent | Microsoft Edge Nigerian English → YarnGPT |

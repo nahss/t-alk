@@ -12,8 +12,18 @@ export class NetworkError extends Error {
 export class OfflineError extends Error {
   readonly kind = "offline";
 }
+/** Why the chain moved past a voice. */
+export type SkipReason = "down" | "resting-today" | "resting-month";
+
 /** One voice is down or resting; the chain should move on. */
-class EngineDown extends Error {}
+class EngineDown extends Error {
+  constructor(
+    message: string,
+    readonly reason: SkipReason = "down",
+  ) {
+    super(message);
+  }
+}
 
 function base64ToUrl(b64: string, mime: string) {
   const bin = atob(b64);
@@ -33,7 +43,11 @@ async function serverLine(step: ChainStep, text: string): Promise<LineAudio> {
   } catch {
     throw new NetworkError("Couldn't reach Talk");
   }
-  if (res.status === 502 || res.status === 503) throw new EngineDown(step.engine);
+  if (res.status === 503) {
+    const data = await res.json().catch(() => null);
+    throw new EngineDown(step.engine, data?.until === "tomorrow" ? "resting-today" : data?.until === "soon" ? "resting-month" : "down");
+  }
+  if (res.status === 502) throw new EngineDown(step.engine);
   if (!res.ok) throw new NetworkError(`speak ${res.status}`);
   const data = (await res.json()) as { audio: string; mime: string; words?: LineAudio["words"] };
   return { url: base64ToUrl(data.audio, data.mime), words: data.words ?? null };
@@ -58,6 +72,8 @@ async function lineFrom(step: ChainStep, text: string): Promise<LineAudio> {
 export class VoiceChain {
   private index = 0;
   private listeners = new Set<() => void>();
+  /** For each voice the chain moved past: why. */
+  readonly skipped: SkipReason[] = [];
 
   constructor(private steps: ChainStep[]) {}
 
@@ -73,6 +89,7 @@ export class VoiceChain {
   reset() {
     if (this.index !== 0) {
       this.index = 0;
+      this.skipped.length = 0;
       this.listeners.forEach((f) => f());
     }
   }
@@ -94,6 +111,7 @@ export class VoiceChain {
       } catch (err) {
         if (!(err instanceof EngineDown)) throw err;
         if (this.index === at) {
+          this.skipped[at] = err.reason;
           this.index = at + 1;
           this.listeners.forEach((f) => f());
         }
