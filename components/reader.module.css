@@ -1,0 +1,457 @@
+/* Reader — values from the Reader boards (desktop + mobile) and "Reader: when things wobble". */
+
+.page {
+  height: 100dvh;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Top bar */
+.header {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 40px;
+  min-height: 84px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+}
+
+.backPill {
+  height: 44px;
+  padding: 0 16px 0 12px;
+  border: 0;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink);
+  background: var(--surface-raised);
+  cursor: pointer;
+}
+
+.backCircle {
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--surface-raised);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  cursor: pointer;
+  flex: none;
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 12px 0 8px;
+  border-radius: 9999px;
+  background: var(--surface-raised);
+  flex: none;
+}
+
+.tile {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: var(--amber-soft);
+  color: var(--amber);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile[data-kind="lang"] {
+  background: var(--iris-soft);
+  color: var(--iris);
+}
+
+/* Small honest notes (connection lost, backup voice…) */
+.note {
+  width: calc(100% - 80px);
+  max-width: 760px;
+  margin: 0 auto 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: var(--danger-soft);
+  flex: none;
+}
+
+.noteText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.retry {
+  height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--surface-raised);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The lines */
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 22%, #000 78%, transparent 100%);
+}
+
+.track {
+  position: relative;
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0 40px;
+  transition: transform 520ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.ln {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 16px;
+  margin: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: var(--ink-muted);
+  transition: background-color 0.2s, color 0.35s;
+}
+
+.ln[data-state="past"] {
+  color: var(--ink-faint);
+}
+
+.ln[data-state="current"] {
+  color: var(--ink);
+}
+
+.ln[data-words] {
+  color: var(--ink-muted);
+}
+
+.lnText {
+  flex: 1;
+  min-width: 0;
+}
+
+.word {
+  padding: 0 6px;
+  margin: 0 -6px;
+  border-radius: 10px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.word[data-state="said"] {
+  color: var(--ink);
+}
+
+.word[data-state="now"] {
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.jump {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 9999px;
+  background: var(--surface-sunken);
+  color: var(--ink-muted);
+  flex: none;
+}
+
+@media (hover: hover) and (min-width: 641px) {
+  .ln:hover {
+    background: var(--surface-raised);
+    color: var(--ink);
+  }
+  .ln:hover .jump {
+    display: flex;
+  }
+}
+
+/* "Getting the next lines ready…" */
+.buffer {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sk {
+  height: 16px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--surface-sunken) 0%, var(--line-strong) 50%, var(--surface-sunken) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.bufferNote {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+/* Controls */
+.controlsWrap {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  /* The design leaves ~72px under the controls on a 900px-tall screen. */
+  padding: 0 40px clamp(16px, 8vh, 72px);
+}
+
+.controls {
+  width: 100%;
+  max-width: 760px;
+  background: var(--surface-raised);
+  border-radius: 32px;
+  box-shadow: var(--shadow-lg);
+  padding: 14px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.track4 {
+  flex: 1;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--line-strong);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--ink);
+  border-radius: 9999px;
+  transition: width 300ms;
+}
+
+.count {
+  color: var(--ink-muted);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+}
+
+.left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb {
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.sb:disabled {
+  color: var(--ink-faint);
+  cursor: not-allowed;
+}
+
+.pp {
+  width: 60px;
+  height: 60px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--brand);
+  color: var(--on-brand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+}
+
+.pp:disabled {
+  background: var(--surface-sunken);
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.speeds {
+  justify-self: end;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: var(--surface-sunken);
+}
+
+.speeds button {
+  height: 32px;
+  min-width: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9999px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--ink-muted);
+}
+
+.speeds button[aria-pressed="true"] {
+  background: var(--brand-soft);
+  color: var(--ink);
+}
+
+.speedCycle {
+  justify-self: start;
+  height: 44px;
+  min-width: 56px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--surface-sunken);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.speedCycle[data-on] {
+  background: var(--brand-soft);
+}
+
+.right {
+  justify-self: end;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    transition: none;
+  }
+  .sk {
+    animation: none;
+  }
+}
+
+/* Phones — values from Reader · Mobile */
+@media (max-width: 640px) {
+  .header {
+    padding: 12px 16px;
+    min-height: 0;
+    gap: 8px;
+  }
+  .chip {
+    padding: 0 10px 0 7px;
+  }
+  .note {
+    width: auto;
+    margin: 0 16px 8px;
+    align-items: center;
+  }
+  .stage {
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 20%, #000 80%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 20%, #000 80%, transparent 100%);
+  }
+  .track {
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ln {
+    min-height: 0;
+    padding: 8px 12px;
+  }
+  .word {
+    padding: 0 4px;
+    margin: 0 -4px;
+    border-radius: 8px;
+  }
+  .buffer {
+    padding: 12px;
+  }
+  .controlsWrap {
+    padding: 8px 12px 16px;
+  }
+  .controls {
+    padding: 14px 16px 12px;
+  }
+  .row {
+    gap: 0;
+  }
+  .buttons {
+    gap: 6px;
+  }
+}

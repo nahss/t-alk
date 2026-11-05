@@ -1,0 +1,196 @@
+/* Design tokens, taken from the Talk design file. Light theme by default;
+   the reader uses the dark theme via [data-theme="dark"]. */
+
+:root {
+  --surface: #f3f4f6;
+  --surface-raised: #ffffff;
+  --surface-sunken: #e9eaee;
+  --line: #e3e4e8;
+  --line-strong: #d0d2d8;
+  --ink: #15171c;
+  --ink-muted: #5c616b;
+  --ink-faint: #8a8f99;
+  --brand: #232323;
+  --brand-strong: #3a3a3a;
+  --brand-soft: #e9e9ed;
+  --on-brand: #ffffff;
+  --inverse: #15171c;
+  --on-inverse: #f7f8fa;
+  --inverse-muted: #9ba0aa;
+  --success: #15803d;
+  --success-soft: #dcfce7;
+  --danger: #b42318;
+  --danger-soft: #fee4e2;
+  --iris: #6d28d9;
+  --iris-soft: #ede9fe;
+  --amber: #b45309;
+  --amber-soft: #fef3c7;
+  --shadow-xs: 0 1px 2px #16181c08, 0 4px 12px -6px #16181c14;
+  --shadow-sm: 0 1px 2px #16181c0f, 0 1px 3px #16181c14;
+  --shadow-md: 0 2px 4px #16181c0f, 0 6px 16px -4px #16181c1f;
+  --shadow-lg: 0 8px 24px -4px #16181c24, 0 16px 40px -8px #16181c2e;
+  --focus-ring: 0 0 0 2px #ffffff, 0 0 0 4px #232323;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+}
+
+[data-theme="dark"] {
+  --surface: #0e0f12;
+  --surface-raised: #17181c;
+  --surface-sunken: #1f2126;
+  --line: #2a2c32;
+  --line-strong: #3a3d45;
+  --ink: #f4f5f7;
+  --ink-muted: #a3a8b2;
+  --ink-faint: #70757f;
+  --brand: #f4f5f7;
+  --brand-strong: #dfe2e7;
+  --brand-soft: #27282d;
+  --on-brand: #232323;
+  --inverse: #f1f2f4;
+  --on-inverse: #15171c;
+  --inverse-muted: #5c616b;
+  --success: #4ade80;
+  --success-soft: #11291a;
+  --danger: #f87171;
+  --danger-soft: #30161a;
+  --iris: #a78bfa;
+  --iris-soft: #241b3d;
+  --amber: #fbbf24;
+  --amber-soft: #3a2a0a;
+  --shadow-sm: 0 1px 2px #00000080, 0 1px 3px #00000066;
+  --shadow-md: 0 2px 4px #00000099, 0 8px 20px -4px #00000080;
+  --shadow-lg: 0 10px 30px -6px #000000b3, 0 20px 50px -12px #000000a6;
+  --focus-ring: 0 0 0 2px #17181c, 0 0 0 4px #f4f5f7;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+textarea,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button:focus-visible,
+a:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+a {
+  color: var(--brand);
+}
+
+a:hover {
+  color: var(--brand-strong);
+}
+
+/* Type scale */
+.display {
+  font-size: 30px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.title {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.body {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 400;
+}
+.body-strong {
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 600;
+}
+.subtle {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 400;
+}
+.caption {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* Icons */
+.i {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+
+/* Screen-reader only */
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Shown only on phones / only on larger screens (design breakpoint: 640px) */
+@media (max-width: 640px) {
+  .desk-only {
+    display: none !important;
+  }
+}
+@media (min-width: 641px) {
+  .phone-only {
+    display: none !important;
+  }
+}
+
+/* Motion used across screens */
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+}

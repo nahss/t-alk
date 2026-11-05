@@ -1,0 +1,265 @@
+/* "Hold on small…" screen — values from the Preparing boards. */
+
+.page {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: var(--surface);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.sky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30%;
+  background: url("/sky.jpg") center 75% / cover no-repeat;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.02) 8%, rgba(0, 0, 0, 0.07) 16%, rgba(0, 0, 0, 0.16) 24%, rgba(0, 0, 0, 0.29) 32%, rgba(0, 0, 0, 0.45) 40%, rgba(0, 0, 0, 0.61) 48%, rgba(0, 0, 0, 0.75) 56%, rgba(0, 0, 0, 0.87) 64%, rgba(0, 0, 0, 0.95) 74%, #000 86%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.02) 8%, rgba(0, 0, 0, 0.07) 16%, rgba(0, 0, 0, 0.16) 24%, rgba(0, 0, 0, 0.29) 32%, rgba(0, 0, 0, 0.45) 40%, rgba(0, 0, 0, 0.61) 48%, rgba(0, 0, 0, 0.75) 56%, rgba(0, 0, 0, 0.87) 64%, rgba(0, 0, 0, 0.95) 74%, #000 86%);
+}
+
+.header {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.brand:hover {
+  color: var(--ink);
+}
+
+.brandDot {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  background: var(--inverse);
+  color: var(--on-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brandName {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 40px 64px;
+}
+
+.column {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.words {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.words h1,
+.words p {
+  margin: 0;
+}
+
+.words p {
+  color: var(--ink-muted);
+}
+
+/* Equaliser bars */
+.eq {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  background: var(--inverse);
+  color: var(--on-inverse);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: var(--shadow-md);
+}
+
+.bar {
+  width: 4px;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: eq 1s ease-in-out infinite;
+}
+
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.card {
+  background: var(--surface-raised);
+  border-radius: 24px;
+  box-shadow: var(--shadow-sm);
+  padding: 8px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  color: var(--ink-muted);
+}
+
+.step[data-state="active"] {
+  border-radius: 18px;
+  background: var(--surface-sunken);
+  color: var(--ink);
+}
+
+.done {
+  width: 28px;
+  height: 28px;
+  border-radius: 9999px;
+  background: var(--success-soft);
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  color: var(--ink);
+}
+
+.ring {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  border: 2px solid var(--line-strong);
+}
+
+.cancelRow {
+  display: flex;
+  justify-content: center;
+}
+
+.cancel {
+  height: 44px;
+  padding: 0 22px;
+  border-radius: 9999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface-raised);
+  display: flex;
+  align-items: center;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}
+
+/* Phones — values from Preparing · Mobile */
+@media (max-width: 640px) {
+  .header {
+    padding: 16px;
+  }
+  .brand {
+    gap: 8px;
+  }
+  .brandDot {
+    width: 36px;
+    height: 36px;
+  }
+  .brandDot svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+  .brandName {
+    font-size: 20px;
+  }
+  .main {
+    padding: 0 16px 32px;
+  }
+  .top {
+    gap: 14px;
+  }
+  .words {
+    display: contents;
+  }
+  .eq {
+    width: 64px;
+    height: 64px;
+  }
+  .card {
+    padding: 6px;
+  }
+  .done,
+  .icon {
+    width: 26px;
+    height: 26px;
+  }
+  .done svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+}
