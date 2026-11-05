@@ -10,7 +10,9 @@
     "scan-secrets": "bash scripts/scan-secrets.sh"
   },
   "dependencies": {
+    "kokoro-js": "^1.2.1",
     "next": "16.4.5",
+    "node-edge-tts": "^1.2.12",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

@@ -1,0 +1,285 @@
+/* Private test page. Plain styling using the design's colours; not part of the design. */
+.page {
+  --surface: #f3f4f6;
+  --raised: #ffffff;
+  --sunken: #e9eaee;
+  --line: #e3e4e8;
+  --ink: #15171c;
+  --muted: #5c616b;
+  --faint: #8a8f99;
+  --brand: #232323;
+  --danger: #b42318;
+  --iris: #6d28d9;
+  --iris-soft: #ede9fe;
+  --amber: #b45309;
+  --amber-soft: #fef3c7;
+  min-height: 100vh;
+  margin: 0 auto;
+  max-width: 880px;
+  padding: 40px 20px 80px;
+  font: 400 15px/22px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+}
+
+:global(body) {
+  margin: 0;
+  background: #f3f4f6;
+}
+
+.page button,
+.page select {
+  font: inherit;
+  color: inherit;
+}
+
+.page button:focus-visible,
+.page select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--brand);
+}
+
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.head h1 {
+  margin: 4px 0 8px;
+  font-size: 30px;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+}
+
+.head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.speeds {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 9999px;
+  background: var(--sunken);
+}
+
+.speeds button {
+  height: 32px;
+  min-width: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.speeds button[aria-pressed="true"] {
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.kokoro {
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.option {
+  margin-top: 28px;
+  padding: 20px;
+  border-radius: 24px;
+  background: var(--raised);
+  box-shadow: 0 1px 2px #16181c0f, 0 1px 3px #16181c14;
+}
+
+.optionHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.optionHead h2 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.kind {
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.kind[data-kind="language"] {
+  background: var(--iris-soft);
+  color: var(--iris);
+}
+
+.reading {
+  margin: 6px 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.row {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+}
+
+.row[data-active] {
+  border: 2px solid var(--brand);
+  padding: 11px;
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.engine {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.engine span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.voice select {
+  height: 40px;
+  max-width: 280px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--raised);
+}
+
+.page .play,
+.page .stop {
+  height: 40px;
+  min-width: 76px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.page .play {
+  background: var(--brand);
+  color: #fff;
+}
+
+.page .stop {
+  background: var(--sunken);
+}
+
+.hint,
+.stat {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+
+.stat[data-tone="error"] {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.lines {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.page .line {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  text-align: left;
+  font-size: 18px;
+  line-height: 26px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.line:hover {
+  background: var(--surface);
+}
+
+.line[data-state="past"] {
+  color: var(--faint);
+}
+
+.line[data-state="next"] {
+  color: var(--muted);
+}
+
+.line[data-state="current"] {
+  color: var(--ink);
+}
+
+.line[data-state="current"][data-words] {
+  color: var(--muted);
+}
+
+.word {
+  padding: 0 3px;
+  margin: 0 -3px;
+  border-radius: 6px;
+}
+
+.word[data-state="said"] {
+  color: var(--ink);
+}
+
+.word[data-state="now"] {
+  color: var(--ink);
+  background: var(--sunken);
+}
+
+.wait {
+  display: block;
+  padding: 0 10px 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
