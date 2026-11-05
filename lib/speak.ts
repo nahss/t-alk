@@ -69,6 +69,14 @@ export class VoiceChain {
     return this.steps[this.index] ?? null;
   }
 
+  /** Start again from the main voice (used by Retry after every voice had stopped). */
+  reset() {
+    if (this.index !== 0) {
+      this.index = 0;
+      this.listeners.forEach((f) => f());
+    }
+  }
+
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     return () => {

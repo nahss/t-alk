@@ -9,6 +9,7 @@ import {
   PauseIcon,
   PlayIcon,
   Info,
+  Moon,
   Retry,
   SkipLine,
   Spinner,
@@ -30,6 +31,8 @@ type Props = {
   /** Set when a backup voice has taken over from the main one */
   backup: ChainStep | null;
   onBack: () => void;
+  /** Try again (from the main voice, if every voice had stopped) */
+  onRetry: () => void;
 };
 
 function Words({ line, token }: { line: string; token: number }) {
@@ -50,7 +53,7 @@ function Words({ line, token }: { line: string; token: number }) {
   );
 }
 
-export default function Reader({ player, lines, title, option, backup, onBack }: Props) {
+export default function Reader({ player, lines, title, option, backup, onBack, onRetry }: Props) {
   const snap = useSyncExternalStore(player.subscribe, player.getSnapshot, player.getSnapshot);
   const phone = useIsPhone();
   const stageRef = useRef<HTMLElement>(null);
@@ -91,7 +94,8 @@ export default function Reader({ player, lines, title, option, backup, onBack }:
   // Pick up again automatically when the connection comes back.
   useEffect(() => {
     const onOnline = () => {
-      if (player.getSnapshot().failed) player.retry();
+      const s = player.getSnapshot();
+      if (s.failed && s.failReason === "network") player.retry();
     };
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);
@@ -99,7 +103,8 @@ export default function Reader({ player, lines, title, option, backup, onBack }:
 
   const nextIndex = Math.min(count - 1, snap.line + 1);
   const canSkip = !buffering && snap.line < count - 1 && !snap.failed;
-  const status = snap.failed ? "Offline" : !snap.playing && snap.started ? "Paused" : null;
+  const resting = snap.failed && snap.failReason === "offline";
+  const status = snap.failed && !resting ? "Offline" : !snap.playing && snap.started ? "Paused" : null;
   const isAcc = option.kind === "acc";
 
   const cycleSpeed = () => {
@@ -137,7 +142,25 @@ export default function Reader({ player, lines, title, option, backup, onBack }:
         </div>
       )}
 
-      {snap.failed && (
+      {resting && (
+        <div className={`${styles.note} ${styles.noteCentered}`} role="status">
+          <Moon size={18} style={{ marginTop: 1 }} />
+          <div className={styles.noteText}>
+            <span className="subtle" style={{ fontWeight: 600 }}>
+              {option.short} voice is resting
+            </span>
+            <span className="caption" style={{ color: "var(--ink-muted)" }}>
+              Paused on this line. Retry in a few minutes, or pick another voice.
+            </span>
+          </div>
+          <button className={`${styles.retry} caption`} onClick={onRetry}>
+            <Retry size={14} />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {snap.failed && !resting && (
         <div className={`${styles.note} ${styles.noteDanger}`} role="alert">
           <WifiOff size={18} style={{ color: "var(--danger)" }} />
           <div className={styles.noteText}>
@@ -148,7 +171,7 @@ export default function Reader({ player, lines, title, option, backup, onBack }:
               Paused on this line. We’ll pick up right here.
             </span>
           </div>
-          <button className={`${styles.retry} caption`} onClick={() => player.retry()}>
+          <button className={`${styles.retry} caption`} onClick={onRetry}>
             <Retry size={14} />
             Retry
           </button>

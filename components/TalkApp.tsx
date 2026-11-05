@@ -154,6 +154,36 @@ export default function TalkApp() {
     return session.player.subscribe(check);
   }, [session, screen, goHome]);
 
+  // If every voice stops partway through a read, the reader shows "voice is resting";
+  // also mark the option offline so Home says so after "New text".
+  useEffect(() => {
+    if (!session || screen !== "reader") return;
+    let marked = false;
+    return session.player.subscribe(() => {
+      const s = session.player.getSnapshot();
+      if (s.failed && s.failReason === "offline" && !marked) {
+        marked = true;
+        const at = Date.now();
+        setNow(at);
+        setOfflineUntil((o) => ({ ...o, [session.option.id]: at + OFFLINE_FOR_MS }));
+        setOfflineNotice(session.option.id);
+      } else if (!s.failed) marked = false;
+    });
+  }, [session, screen]);
+
+  const onRetry = useCallback(() => {
+    if (!session) return;
+    // Give the main voice another chance.
+    session.chain.reset();
+    setOfflineUntil((o) => {
+      const next = { ...o };
+      delete next[session.option.id];
+      return next;
+    });
+    setOfflineNotice(null);
+    session.player.retry();
+  }, [session]);
+
   // The reader is dark; match the page behind it so overscroll doesn't flash white.
   useEffect(() => {
     document.body.style.background = screen === "reader" ? "#0e0f12" : "";
@@ -178,6 +208,7 @@ export default function TalkApp() {
         option={session.option}
         backup={backupStep}
         onBack={goHome}
+        onRetry={onRetry}
       />
     );
   }

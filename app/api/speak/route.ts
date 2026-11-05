@@ -21,10 +21,21 @@ function fromOurSite(request: Request) {
   return true;
 }
 
-/** Local testing only: TALK_SIMULATE_DOWN=edge,yarngpt makes those engines fail. */
+/**
+ * Local testing only. TALK_SIMULATE_DOWN=edge,yarngpt makes those engines fail;
+ * "edge@3" lets the first 3 requests through, then fails (a voice dropping mid-read).
+ */
+const simulatedCalls: Record<string, number> = {};
 function simulatedDown(engine: string) {
   if (process.env.NODE_ENV === "production") return false;
-  return (process.env.TALK_SIMULATE_DOWN ?? "").split(",").map((s) => s.trim()).includes(engine);
+  for (const rule of (process.env.TALK_SIMULATE_DOWN ?? "").split(",")) {
+    const [name, after] = rule.trim().split("@");
+    if (name !== engine) continue;
+    if (!after) return true;
+    simulatedCalls[engine] = (simulatedCalls[engine] ?? 0) + 1;
+    return simulatedCalls[engine] > Number(after);
+  }
+  return false;
 }
 
 const json = (body: unknown, status = 200) =>

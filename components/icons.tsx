@@ -98,6 +98,12 @@ export const WifiOff = (p: IconProps) => (
     <path d="M3 3l18 18M8.5 16.5a5 5 0 0 1 7 0M5 12.5a10 10 0 0 1 4-2.4M12 8a10 10 0 0 1 7 4.5M2 8.5a15 15 0 0 1 4.5-2.8M12 20h.01" />
   </Icon>
 );
+/** Resting (moon) */
+export const Moon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+  </Icon>
+);
 export const Retry = (p: IconProps) => (
   <Icon {...p}>
     <path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4.5h-4.5" />
