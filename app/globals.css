@@ -146,6 +146,18 @@ a:hover {
   letter-spacing: 0.01em;
 }
 
+/* In the design file, button and text-box text inherits the page's 16px regular
+   font (its `button { font: inherit }` rule wins over the type classes), so
+   buttons like the reader lines, speed and toolbar buttons show at 16px.
+   Talk matches what the file shows. Letter-spacing from the class still applies. */
+button.caption,
+button.subtle,
+button.display,
+button.title,
+textarea.body {
+  font: inherit;
+}
+
 /* Icons */
 .i {
   width: 20px;
