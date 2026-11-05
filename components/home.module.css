@@ -234,6 +234,13 @@
   gap: 2px;
 }
 
+.offline {
+  color: var(--ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .check {
   width: 22px;
   height: 22px;

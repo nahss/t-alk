@@ -23,6 +23,8 @@ export type PlayerSnapshot = {
   ended: boolean;
   /** Couldn't get audio for this line, even after a retry */
   failed: boolean;
+  /** Why: the listener's connection, or every voice for this option is down */
+  failReason: "network" | "offline" | null;
   speed: number;
   /** Bumps whenever a line's audio becomes ready */
   readyVersion: number;
@@ -46,6 +48,7 @@ export class Player {
     started: false,
     ended: false,
     failed: false,
+    failReason: null,
     speed: 1,
     readyVersion: 0,
     lastPlayed: -1,
@@ -66,7 +69,10 @@ export class Player {
     private fetchLine: FetchLine,
     private audio: HTMLAudioElement,
   ) {
-    audio.onended = () => this.next(true);
+    audio.onended = () => {
+      // Only our own line finishing counts (not the silent unlock sound).
+      if (this.loadedLine === this.snap.line) this.next(true);
+    };
     audio.onerror = () => {
       if (this.loadedLine >= 0) this.fail();
     };
@@ -113,7 +119,7 @@ export class Player {
       this.seek(0, true);
       return;
     }
-    this.set({ playing: true, failed: false });
+    this.set({ playing: true, failed: false, failReason: null });
     if (this.loadedLine === this.snap.line && this.audio.src) {
       this.audio.play().then(
         () => this.startTicker(),
@@ -142,7 +148,7 @@ export class Player {
     this.stopTicker();
     this.quietPause();
     this.loadedLine = -1;
-    this.set({ line: i, token: -1, progress: 0, ended: false, failed: false, waiting: false, hasWords: false });
+    this.set({ line: i, token: -1, progress: 0, ended: false, failed: false, failReason: null, waiting: false, hasWords: false });
     if (autoplay) {
       this.set({ playing: true });
       void this.start(i);
@@ -169,7 +175,7 @@ export class Player {
 
   retry() {
     this.pending.delete(this.snap.line);
-    this.set({ failed: false });
+    this.set({ failed: false, failReason: null });
     this.seek(this.snap.line, true);
   }
 
@@ -211,7 +217,9 @@ export class Player {
     if (have) return Promise.resolve(have);
     let p = this.pending.get(i);
     if (!p) {
-      p = this.fetchLine(i).catch(async () => {
+      p = this.fetchLine(i).catch(async (err) => {
+        // Every voice is down: retrying won't help.
+        if ((err as { kind?: string })?.kind === "offline") throw err;
         await delay(800);
         return this.fetchLine(i);
       });
@@ -244,14 +252,14 @@ export class Player {
     const g = ++this.gen;
     this.stopTicker();
     this.loadedLine = -1;
-    this.set({ line: i, token: -1, progress: 0, waiting: !this.ready.has(i), failed: false, hasWords: false });
+    this.set({ line: i, token: -1, progress: 0, waiting: !this.ready.has(i), failed: false, failReason: null, hasWords: false });
     this.prefetch(i);
 
     let a: LineAudio;
     try {
       a = await this.ensure(i)!;
-    } catch {
-      if (g === this.gen) this.fail();
+    } catch (err) {
+      if (g === this.gen) this.fail((err as { kind?: string })?.kind === "offline" ? "offline" : "network");
       return;
     }
     if (g !== this.gen || this.destroyed) return;
@@ -274,10 +282,10 @@ export class Player {
     this.startTicker();
   }
 
-  private fail() {
+  private fail(reason: "network" | "offline" = "network") {
     this.stopTicker();
     this.quietPause();
-    this.set({ waiting: false, failed: true, playing: false });
+    this.set({ waiting: false, failed: true, failReason: reason, playing: false });
   }
 
   private startTicker() {

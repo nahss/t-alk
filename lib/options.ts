@@ -1,7 +1,9 @@
-// The 8 voice options shown on the home screen and in the "All voices" panel.
-// Shared by the browser and the server: no keys here.
+// The 8 voice options shown on the home screen and in the "All voices" panel,
+// and the voices each one tries, in order. Shared by browser and server: no keys here.
 
 export type OptionKind = "lang" | "acc";
+export type EngineId = "edge" | "yarngpt" | "kokoro";
+export type ChainStep = { engine: EngineId; voice: string };
 
 export type VoiceOption = {
   id: string;
@@ -16,30 +18,56 @@ export type VoiceOption = {
   subMobile: string;
   /** Hint under the name in the All voices panel */
   hint: string;
-  /** Main Edge voice for this option (Phase 2 only wires British). */
-  edgeVoice?: string;
+  /** Voices to try, in order. The first is the main voice; the rest are backups. */
+  chain: ChainStep[];
 };
 
+const edge = (voice: string): ChainStep => ({ engine: "edge", voice });
+
 export const OPTIONS: VoiceOption[] = [
-  { id: "pidgin", kind: "lang", short: "Pidgin", name: "Pidgin", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“How you dey?”" },
-  { id: "es", kind: "lang", short: "Spanish", name: "Spanish", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“¿Qué tal?”" },
-  { id: "fr", kind: "lang", short: "French", name: "French", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“Ça va ?”" },
-  { id: "ng", kind: "acc", short: "Nigerian", name: "Nigerian accent", sub: "Your words, Lagos voice", subMobile: "Your words, Lagos", hint: "Lagos" },
-  { id: "gb", kind: "acc", short: "British", name: "British accent", sub: "Your words, London voice", subMobile: "Your words, London", hint: "London", edgeVoice: "en-GB-SoniaNeural" },
-  { id: "es-acc", kind: "acc", short: "Spanish", name: "Spanish accent", sub: "Your words", subMobile: "Your words", hint: "Madrid" },
-  { id: "fr-acc", kind: "acc", short: "French", name: "French accent", sub: "Your words", subMobile: "Your words", hint: "Paris" },
-  { id: "de", kind: "acc", short: "German", name: "German accent", sub: "Your words", subMobile: "Your words", hint: "Berlin" },
+  { id: "pidgin", kind: "lang", short: "Pidgin", name: "Pidgin", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“How you dey?”", chain: [] },
+  { id: "es", kind: "lang", short: "Spanish", name: "Spanish", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“¿Qué tal?”", chain: [] },
+  { id: "fr", kind: "lang", short: "French", name: "French", sub: "Translated, then read", subMobile: "Translated, then read", hint: "“Ça va ?”", chain: [] },
+  {
+    id: "ng",
+    kind: "acc",
+    short: "Nigerian",
+    name: "Nigerian accent",
+    sub: "Your words, Lagos voice",
+    subMobile: "Your words, Lagos",
+    hint: "Lagos",
+    chain: [edge("en-NG-EzinneNeural"), { engine: "yarngpt", voice: "idera" }],
+  },
+  {
+    id: "gb",
+    kind: "acc",
+    short: "British",
+    name: "British accent",
+    sub: "Your words, London voice",
+    subMobile: "Your words, London",
+    hint: "London",
+    chain: [edge("en-GB-SoniaNeural"), { engine: "kokoro", voice: "bf_emma" }],
+  },
+  { id: "es-acc", kind: "acc", short: "Spanish", name: "Spanish accent", sub: "Your words", subMobile: "Your words", hint: "Madrid", chain: [edge("es-ES-ElviraNeural")] },
+  { id: "fr-acc", kind: "acc", short: "French", name: "French accent", sub: "Your words", subMobile: "Your words", hint: "Paris", chain: [edge("fr-FR-DeniseNeural")] },
+  { id: "de", kind: "acc", short: "German", name: "German accent", sub: "Your words", subMobile: "Your words", hint: "Berlin", chain: [edge("de-DE-KatjaNeural")] },
 ];
 
 /** The three cards in the home screen's "Pick a voice" row, as designed. */
 export const HOME_CARDS = ["pidgin", "ng", "gb"];
 
-/** Options that work right now. Phase 2: British only. Phases 3–5 switch the rest on. */
-export const LIVE = new Set(["gb"]);
+/** Options that work right now. Phase 3: all five accents. Phases 4–5 add the languages. */
+export const LIVE = new Set(["ng", "gb", "es-acc", "fr-acc", "de"]);
 
 export const optionById = (id: string | null | undefined) => OPTIONS.find((o) => o.id === id) ?? null;
 
-/** Edge voices the public speak route accepts. */
-export const SPEAK_VOICES = new Set(
-  OPTIONS.filter((o) => LIVE.has(o.id) && o.edgeVoice).map((o) => o.edgeVoice as string),
-);
+/** Voices the public speak route accepts, per server engine. */
+function allowed(engine: EngineId) {
+  return new Set(
+    OPTIONS.filter((o) => LIVE.has(o.id))
+      .flatMap((o) => o.chain)
+      .filter((s) => s.engine === engine)
+      .map((s) => s.voice),
+  );
+}
+export const SPEAK_VOICES = { edge: allowed("edge"), yarngpt: allowed("yarngpt") };

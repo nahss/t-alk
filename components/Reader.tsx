@@ -2,12 +2,13 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Player } from "@/lib/player";
-import type { VoiceOption } from "@/lib/options";
+import type { ChainStep, VoiceOption } from "@/lib/options";
 import {
   ArrowLeft,
   BackLine,
   PauseIcon,
   PlayIcon,
+  Info,
   Retry,
   SkipLine,
   Spinner,
@@ -26,6 +27,8 @@ type Props = {
   lines: string[];
   title: string;
   option: VoiceOption;
+  /** Set when a backup voice has taken over from the main one */
+  backup: ChainStep | null;
   onBack: () => void;
 };
 
@@ -47,7 +50,7 @@ function Words({ line, token }: { line: string; token: number }) {
   );
 }
 
-export default function Reader({ player, lines, title, option, onBack }: Props) {
+export default function Reader({ player, lines, title, option, backup, onBack }: Props) {
   const snap = useSyncExternalStore(player.subscribe, player.getSnapshot, player.getSnapshot);
   const phone = useIsPhone();
   const stageRef = useRef<HTMLElement>(null);
@@ -120,11 +123,22 @@ export default function Reader({ player, lines, title, option, onBack }: Props) 
             {isAcc ? <VoiceBars size={14} /> : <Translate size={14} />}
           </span>
           {option.name}
+          {backup ? " · backup" : ""}
         </span>
       </header>
 
+      {backup && !snap.failed && (
+        <div className={styles.note} role="status">
+          <Info size={18} style={{ marginTop: 1 }} />
+          <span className="subtle">
+            Our main {option.short} voice is busy, so a backup is reading.
+            {backup.engine === "kokoro" ? " It may sound a little flat." : ""}
+          </span>
+        </div>
+      )}
+
       {snap.failed && (
-        <div className={styles.note} role="alert">
+        <div className={`${styles.note} ${styles.noteDanger}`} role="alert">
           <WifiOff size={18} style={{ color: "var(--danger)" }} />
           <div className={styles.noteText}>
             <span className="subtle" style={{ fontWeight: 600, color: "var(--danger)" }}>

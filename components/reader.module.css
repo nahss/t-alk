@@ -92,12 +92,17 @@
   max-width: 760px;
   margin: 0 auto 8px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 12px 14px;
   border-radius: 18px;
-  background: var(--danger-soft);
+  background: var(--surface-raised);
   flex: none;
+}
+
+.noteDanger {
+  align-items: center;
+  background: var(--danger-soft);
 }
 
 .noteText {
@@ -418,7 +423,6 @@
   .note {
     width: auto;
     margin: 0 16px 8px;
-    align-items: center;
   }
   .stage {
     -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 20%, #000 80%, transparent 100%);

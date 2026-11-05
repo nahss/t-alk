@@ -18,6 +18,7 @@ import {
   Translate,
   Upload,
   VoiceBars,
+  WifiOff,
 } from "./icons";
 import { useIsPhone } from "./useIsPhone";
 import styles from "./home.module.css";
@@ -40,6 +41,10 @@ type Props = {
   pick: string | null;
   onPick: (id: string) => void;
   onPlay: () => void;
+  /** Options whose voices are all down right now */
+  offline: Set<string>;
+  /** The option that just turned out to be offline (shows the hint) */
+  offlineNotice: string | null;
 };
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -81,7 +86,7 @@ function fileSub(p: PdfState): ReactNode {
   }
 }
 
-export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pick, onPick, onPlay }: Props) {
+export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pick, onPick, onPlay, offline, offlineNotice }: Props) {
   const phone = useIsPhone();
   const [panelOpen, setPanelOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -95,7 +100,8 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
   const over = words > WORD_LIMIT;
   const pdfError = isPdfError(pdf);
   const reading = pdf?.status === "reading";
-  const ready = words > 0 && !over && !!picked && LIVE.has(picked.id) && !pdfError && !reading;
+  const ready =
+    words > 0 && !over && !!picked && LIVE.has(picked.id) && !offline.has(picked.id) && !pdfError && !reading;
 
   // Hint under the box
   let hint: ReactNode = "";
@@ -106,6 +112,8 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
   } else if (over) {
     hint = "Trim to 20,000 words to play";
     hintDanger = true;
+  } else if (offlineNotice) {
+    hint = `${optionById(offlineNotice)?.short ?? "That voice"} is taking a break while we fix it. Try another voice.`;
   } else if (words > 0 && !picked) {
     hint = "Pick a voice above to play.";
   }
@@ -241,20 +249,29 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
                 const o = optionById(id)!;
                 const on = pick === id;
                 const live = LIVE.has(id);
+                const down = offline.has(id);
                 return (
                   <button
                     key={id}
                     className={styles.vcard}
                     aria-pressed={on}
                     data-on={on || undefined}
-                    disabled={!live}
+                    disabled={!live || down}
+                    aria-describedby={down ? `${id}-off` : undefined}
                     onClick={() => onPick(id)}
                   >
                     <span className={styles.vcardText}>
                       <span className="body-strong">{o.name}</span>
-                      <span className="caption" style={{ color: "var(--ink-muted)" }}>
-                        {!live ? "Coming soon" : phone ? o.subMobile : o.sub}
-                      </span>
+                      {down ? (
+                        <span id={`${id}-off`} className={`${styles.offline} caption`}>
+                          <WifiOff size={12} />
+                          Offline for now
+                        </span>
+                      ) : (
+                        <span className="caption" style={{ color: "var(--ink-muted)" }}>
+                          {!live ? "Coming soon" : phone ? o.subMobile : o.sub}
+                        </span>
+                      )}
                     </span>
                     {on && (
                       <span className={styles.check}>
@@ -433,13 +450,14 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
                   {OPTIONS.filter((o) => o.kind === kind).map((o) => {
                     const on = pick === o.id;
                     const soon = !LIVE.has(o.id);
+                    const down = offline.has(o.id);
                     return (
                       <button
                         key={o.id}
                         className={styles.opt}
                         aria-pressed={on}
                         data-on={on || undefined}
-                        disabled={soon}
+                        disabled={soon || down}
                         onClick={() => {
                           onPick(o.id);
                           closePanel();
@@ -447,7 +465,7 @@ export default function Home({ text, onText, pdf, onFile, onRemovePdf, words, pi
                       >
                         <span className="body-strong">{o.short}</span>
                         <span className="caption" style={{ color: "var(--ink-muted)" }}>
-                          {soon ? "Coming soon" : o.hint}
+                          {soon ? "Coming soon" : down ? "Offline for now" : o.hint}
                         </span>
                       </button>
                     );

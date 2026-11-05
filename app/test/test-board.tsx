@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import type { KokoroTTS } from "kokoro-js";
+import { kokoroSpeak, loadKokoro } from "@/lib/kokoro";
 import { SAMPLE } from "@/lib/sample";
 import { TEST_OPTIONS, type EngineId, type TestOption } from "@/lib/voices";
 import { alignTimings, tokenAt, type WordTiming } from "@/lib/align";
@@ -38,49 +38,26 @@ async function serverClip(path: string, text: string, voice: string): Promise<Cl
   return { url: base64ToUrl(data.audio, data.mime), words: data.words ?? null, ms: data.ms };
 }
 
-// Kokoro runs in this browser. The model downloads once, then the browser keeps it.
-let kokoroLoad: Promise<KokoroTTS> | null = null;
-let kokoroQueue: Promise<unknown> = Promise.resolve();
+// Kokoro runs in this browser, in a background thread (lib/kokoro.ts).
 const kokoroListeners = new Set<(msg: string) => void>();
 const kokoroSay = (msg: string) => kokoroListeners.forEach((f) => f(msg));
-
-function loadKokoro() {
-  if (!kokoroLoad) {
-    kokoroSay("Downloading the backup voice…");
-    kokoroLoad = import("kokoro-js")
-      .then(({ KokoroTTS }) =>
-        KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
-          dtype: "q8",
-          device: "wasm",
-          progress_callback: (p) => {
-            if (p.status === "progress" && p.file.endsWith(".onnx")) {
-              kokoroSay(`Downloading the backup voice… ${Math.round(p.progress)}%`);
-            }
-          },
-        }),
-      )
-      .then((model) => {
-        kokoroSay("Backup voice loaded in this browser.");
-        return model;
-      });
-    kokoroLoad.catch((err) => {
-      kokoroLoad = null;
-      kokoroSay(`Backup voice failed to load: ${err instanceof Error ? err.message : err}`);
-    });
-  }
-  return kokoroLoad;
-}
+let kokoroReady = false;
 
 async function kokoroClip(text: string, voice: string): Promise<Clip> {
-  const model = await loadKokoro();
-  // One line at a time: the model can't make two at once.
-  const job = kokoroQueue.then(async () => {
-    const t0 = performance.now();
-    const audio = await model.generate(text, { voice: voice as never });
-    return { url: URL.createObjectURL(audio.toBlob()), words: null, ms: Math.round(performance.now() - t0) };
-  });
-  kokoroQueue = job.catch(() => undefined);
-  return job;
+  if (!kokoroReady) {
+    kokoroSay("Downloading the backup voice…");
+    try {
+      await loadKokoro((p) => kokoroSay(`Downloading the backup voice… ${Math.round(p)}%`));
+    } catch (err) {
+      kokoroSay(`Backup voice failed to load: ${err instanceof Error ? err.message : err}`);
+      throw err;
+    }
+    kokoroReady = true;
+    kokoroSay("Backup voice loaded in this browser.");
+  }
+  const t0 = performance.now();
+  const audio = await kokoroSpeak(text, voice);
+  return { url: audio.url, words: null, ms: Math.round(performance.now() - t0) };
 }
 
 function getClip(engine: EngineId, voice: string, text: string): Promise<Clip> {
