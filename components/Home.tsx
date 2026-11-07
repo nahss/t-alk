@@ -276,7 +276,7 @@ export default function Home({
             <>
               <span className={`${styles.navpill} ${styles.counter} subtle desk-only`}>
                 <span className={styles.dot} />
-                <b>{fmt(total)}</b> texts read
+                <b>{fmt(total)}</b> {total === 1 ? "text" : "texts"} read
               </span>
               <span className={`${styles.navpill} ${styles.counter} caption phone-only`}>
                 <span className={styles.dot} />
