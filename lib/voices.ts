@@ -105,8 +105,8 @@ export const TEST_OPTIONS: TestOption[] = [
     kind: "language",
     sample: "pcm",
     engines: [
-      { engine: "yarngpt", label: "YarnGPT", role: "Main voice (uses YarnGPT credits)", voices: YARN },
-      { engine: "edge", label: "Edge · Nigerian English", role: "Backup 1", voices: EDGE.ng },
+      { engine: "edge", label: "Edge · Nigerian English", role: "Main voice", voices: EDGE.ng },
+      { engine: "yarngpt", label: "YarnGPT", role: "Backup 1 (uses YarnGPT credits)", voices: YARN },
       { engine: "kokoro", label: "Kokoro · English (in browser)", role: "Backup 2", voices: KOKORO.en },
     ],
   },

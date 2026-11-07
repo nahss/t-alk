@@ -180,7 +180,25 @@ export default function Home({
     if (!panelOpen) return;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPanelOpen(false);
+      if (e.key === "Escape") {
+        setPanelOpen(false);
+        openerRef.current?.focus();
+        return;
+      }
+      // Keep Tab inside the panel while it's open.
+      if (e.key === "Tab" && panelRef.current) {
+        const items = [...panelRef.current.querySelectorAll<HTMLElement>("button:not([disabled])")];
+        if (!items.length) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -459,6 +477,7 @@ export default function Home({
             className={`${styles.hint} caption`}
             style={{ color: hintDanger ? "var(--danger)" : "var(--ink-muted)" }}
             role={hintDanger ? "alert" : undefined}
+            aria-live={hintDanger ? undefined : "polite"}
           >
             {hintDanger ? <Alert size={14} /> : hintIcon}
             {hint}
@@ -489,14 +508,18 @@ export default function Home({
       <aside
         ref={panelRef}
         className={styles.panel}
-        aria-label="All voices"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="all-voices-h"
         aria-hidden={!panelOpen}
         inert={!panelOpen}
         data-open={panelOpen || undefined}
       >
         <div className={styles.panelHead}>
           <div className={styles.panelTitle}>
-            <h2 className="title">All voices</h2>
+            <h2 id="all-voices-h" className="title">
+              All voices
+            </h2>
             <span className="caption" style={{ color: "var(--ink-muted)" }}>
               Languages are translated first. Accents keep your words.
             </span>

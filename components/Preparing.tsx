@@ -1,12 +1,19 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Check, LogoBars, Spinner } from "./icons";
+import { useIsPhone } from "./useIsPhone";
 import styles from "./preparing.module.css";
 
 export type Step = { label: string; state: "done" | "active" | "todo"; note?: string };
 
 export default function Preparing({ steps, onCancel }: { steps: Step[]; onCancel: () => void }) {
+  const phone = useIsPhone();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    headingRef.current?.focus({ preventScroll: true });
+  }, []);
   return (
     <div className={styles.page} data-theme="light">
       <div className={styles.sky} aria-hidden="true" />
@@ -30,18 +37,14 @@ export default function Preparing({ steps, onCancel }: { steps: Step[]; onCancel
         <div className={styles.column}>
           <div className={styles.top}>
             <div aria-hidden="true" className={styles.eq}>
-              {[
-                [16, -0.2],
-                [26, -0.5],
-                [32, -0.1],
-                [22, -0.7],
-                [14, -0.35],
-              ].map(([h, d], i) => (
-                <span key={i} className={styles.bar} style={{ height: h, animationDelay: `${d}s` }} />
+              {(phone ? [14, 24, 28, 20, 12] : [16, 26, 32, 22, 14]).map((h, i) => (
+                <span key={i} className={styles.bar} style={{ height: h, animationDelay: `${[-0.2, -0.5, -0.1, -0.7, -0.35][i]}s` }} />
               ))}
             </div>
             <div className={styles.words}>
-              <h1 className="display">Hold on small…</h1>
+              <h1 ref={headingRef} tabIndex={-1} className="display" style={{ outline: "none" }}>
+                Hold on small…
+              </h1>
               <p className="body">We start reading as soon as the first lines are ready.</p>
             </div>
           </div>

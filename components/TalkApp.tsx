@@ -382,9 +382,12 @@ export default function TalkApp() {
   }, [session]);
 
   // The reader is dark; match the page behind it so overscroll doesn't flash white.
+  // The tab title says where you are (screen readers announce it too).
   useEffect(() => {
     document.body.style.background = screen === "reader" ? "#0e0f12" : "";
-  }, [screen]);
+    document.title =
+      screen === "reader" && session ? `Reading ${session.title} · Talk` : screen === "preparing" ? "Hold on small… · Talk" : "Talk";
+  }, [screen, session]);
 
   if (screen === "preparing" && prep) {
     const translation = session?.translation ?? null;

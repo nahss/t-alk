@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { kokoroSpeak, loadKokoro } from "@/lib/kokoro";
-import { SAMPLE } from "@/lib/sample";
+import { NAMES, SAMPLE } from "@/lib/sample";
 import { TEST_OPTIONS, type EngineId, type TestOption } from "@/lib/voices";
 import { alignTimings, tokenAt, type WordTiming } from "@/lib/align";
 import styles from "./test.module.css";
@@ -103,6 +103,8 @@ function lineWithWords(line: string, current: number): ReactNode {
 
 export default function TestBoard() {
   const [speed, setSpeed] = useState(1);
+  const [paragraph, setParagraph] = useState<"story" | "names">("story");
+  const TEXT = paragraph === "names" ? NAMES : SAMPLE;
   const [voices, setVoices] = useState<Record<string, string>>({});
   const [active, setActive] = useState<Active | null>(null);
   const [stats, setStats] = useState<Record<string, Stat>>({});
@@ -173,7 +175,7 @@ export default function TestBoard() {
       const engine = option.engines[engineIndex];
       const rowKey = `${option.id}:${engineIndex}`;
       const voice = voices[rowKey] ?? engine.voices[0].id;
-      const lines = SAMPLE[option.sample].lines;
+      const lines = TEXT[option.sample].lines;
 
       halt();
       const run = runRef.current;
@@ -234,7 +236,7 @@ export default function TestBoard() {
       }
       if (run === runRef.current) setActive(null);
     },
-    [voices, halt, playClip],
+    [voices, halt, playClip, TEXT],
   );
 
   return (
@@ -248,6 +250,27 @@ export default function TestBoard() {
           to jump to it.
         </p>
         <div className={styles.controls}>
+          <span>Paragraph</span>
+          <div role="group" aria-label="Paragraph" className={styles.speeds}>
+            <button
+              aria-pressed={paragraph === "story"}
+              onClick={() => {
+                stop();
+                setParagraph("story");
+              }}
+            >
+              Lagos morning
+            </button>
+            <button
+              aria-pressed={paragraph === "names"}
+              onClick={() => {
+                stop();
+                setParagraph("names");
+              }}
+            >
+              Names test
+            </button>
+          </div>
           <span>Speed</span>
           <div role="group" aria-label="Speed" className={styles.speeds}>
             {SPEEDS.map((v) => (
@@ -269,7 +292,7 @@ export default function TestBoard() {
             </span>
           </div>
           <p className={styles.reading}>
-            Reading: {SAMPLE[option.sample].label}
+            Reading: {TEXT[option.sample].label}
             {option.note ? `. ${option.note}` : ""}
           </p>
 
@@ -277,7 +300,7 @@ export default function TestBoard() {
             const rowKey = `${option.id}:${idx}`;
             const isActive = active?.rowKey === rowKey;
             const stat = stats[rowKey];
-            const lines = SAMPLE[option.sample].lines;
+            const lines = TEXT[option.sample].lines;
             return (
               <div key={rowKey} className={styles.row} data-active={isActive || undefined}>
                 <div className={styles.rowHead}>

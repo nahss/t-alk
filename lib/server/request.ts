@@ -51,3 +51,10 @@ export function simulatedDown(engine: string) {
   }
   return false;
 }
+
+/** Local testing only: TALK_SIMULATE_DELAY_MS=4000 makes every voice line that much slower. */
+export async function simulatedDelay() {
+  if (process.env.NODE_ENV === "production") return;
+  const ms = Number(process.env.TALK_SIMULATE_DELAY_MS);
+  if (ms > 0) await new Promise((r) => setTimeout(r, ms));
+}

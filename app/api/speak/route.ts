@@ -3,7 +3,7 @@
 import { edgeSpeak } from "@/lib/tts/edge";
 import { yarnSpeak, YarnError } from "@/lib/tts/yarngpt";
 import { SPEAK_VOICES } from "@/lib/options";
-import { fromOurSite, json, simulatedDown } from "@/lib/server/request";
+import { fromOurSite, json, simulatedDelay, simulatedDown } from "@/lib/server/request";
 
 const MAX_CHARS = 600;
 
@@ -18,6 +18,9 @@ export async function POST(request: Request) {
   if ((engine !== "edge" && engine !== "yarngpt") || typeof voice !== "string" || !SPEAK_VOICES[engine as "edge" | "yarngpt"].has(voice)) {
     return json({ error: "Unknown voice." }, 400);
   }
+  await simulatedDelay();
+  // "network" stands in for the listener's connection dropping (local testing only).
+  if (simulatedDown("network")) return json({ error: "simulated network failure" }, 500);
   if (simulatedDown(engine)) return json({ error: "voice_unavailable" }, 502);
   if (engine === "yarngpt" && simulatedDown("yarngpt-resting")) return json({ error: "voice_resting", until: "tomorrow" }, 503);
   if (engine === "yarngpt" && simulatedDown("yarngpt-credits")) return json({ error: "voice_resting", until: "soon" }, 503);

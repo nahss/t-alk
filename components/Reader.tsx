@@ -137,6 +137,39 @@ export default function Reader({
     player.setSpeed(SPEEDS[(i + 1) % SPEEDS.length]);
   };
 
+  // Keyboard: Space or K plays/pauses, ← and → move a line (J and L too).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable='true']")) return;
+      const onControl = !!t?.closest("button, a");
+      const key = e.key.toLowerCase();
+      if (key === "k" || (key === " " && !onControl)) {
+        e.preventDefault();
+        if (!player.getSnapshot().failed) player.toggle();
+      } else if (key === "arrowleft" || key === "j") {
+        e.preventDefault();
+        player.prev();
+      } else if (key === "arrowright" || key === "l") {
+        e.preventDefault();
+        const s = player.getSnapshot();
+        if (s.line < lines.length - 1) player.seek(s.line + 1);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [player, lines.length]);
+
+  // Put keyboard focus on Play/Pause when the reader opens.
+  const ppRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    ppRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  // Screen readers should pronounce translated lines in their own language.
+  const textLang = showTranslation ? (option.id === "pidgin" ? "pcm" : option.id) : undefined;
+
   return (
     <div className={styles.page} data-theme="dark">
       <header className={styles.header}>
@@ -264,7 +297,10 @@ export default function Reader({
       )}
 
       <h1 className="sr">Reading {title}</h1>
-      <section ref={stageRef} className={styles.stage} aria-label="Text being read">
+      <p id="reader-keys" className="sr">
+        Keyboard: Space or K to play or pause, left and right arrows to move between lines.
+      </p>
+      <section ref={stageRef} className={styles.stage} aria-label="Text being read" lang={textLang}>
         <div
           className={styles.track}
           style={{ transform: `translateY(${offset}px)`, transition: animate ? undefined : "none" }}
@@ -329,7 +365,11 @@ export default function Reader({
               <div className={styles.fill} style={{ width: `${pct}%` }} />
             </div>
             <span className={`${styles.count} caption phone-only`}>
-              {shown + 1} / {count}
+              <span className="sr">Line </span>
+              {shown + 1}
+              <span aria-hidden="true"> / </span>
+              <span className="sr"> of </span>
+              {count}
             </span>
           </div>
           <div className={styles.row}>
@@ -355,8 +395,10 @@ export default function Reader({
                 <BackLine size={22} />
               </button>
               <button
+                ref={ppRef}
                 className={styles.pp}
                 aria-label={snap.playing ? "Pause" : "Play"}
+                aria-describedby="reader-keys"
                 onClick={() => player.toggle()}
                 disabled={snap.failed}
               >
