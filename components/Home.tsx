@@ -14,6 +14,7 @@ import {
   Lock,
   LogoBars,
   Moon,
+  Clock,
   PlayIcon,
   Spinner,
   Translate,
@@ -53,6 +54,10 @@ type Props = {
   langState: LangState;
   /** The text's language, once Talk has worked it out */
   detected: Detected | null;
+  /** The public number of texts read (null until it loads, or if it can't) */
+  total: number | null;
+  /** If this browser hit the hourly limit for a new text: when it unlocks */
+  limitedUntil: number | null;
 };
 
 const fmt = (n: number) => n.toLocaleString("en-US");
@@ -108,6 +113,8 @@ export default function Home({
   offlineNotice,
   langState,
   detected,
+  total,
+  limitedUntil,
 }: Props) {
   const phone = useIsPhone();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -134,7 +141,10 @@ export default function Home({
             ? "Not available here"
             : "";
   const ready =
-    words > 0 && !over && !!picked && !unavailable(picked.id, picked.kind) && !pdfError && !reading;
+    words > 0 && !over && !!picked && !unavailable(picked.id, picked.kind) && !pdfError && !reading && !limitedUntil;
+  const unlockTime = limitedUntil
+    ? new Date(limitedUntil).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+    : null;
   const target = picked?.kind === "lang" ? TARGETS[picked.id] : null;
 
   // Hint under the box
@@ -147,6 +157,9 @@ export default function Home({
   } else if (over) {
     hint = "Trim to 20,000 words to play";
     hintDanger = true;
+  } else if (unlockTime) {
+    hint = `That’s a lot of reading for one hour. Your next read unlocks at ${unlockTime}.`;
+    hintIcon = <Clock size={14} />;
   } else if (offlineNotice) {
     hint = `${optionById(offlineNotice)?.short ?? "That voice"} is taking a break while we fix it. Try another voice.`;
   } else if (langState === "resting" && (!picked || picked.kind === "lang")) {
@@ -155,6 +168,9 @@ export default function Home({
   } else if (target && detected && alreadyIn(detected.code, target)) {
     hint = `Already in ${target.short} — reading as-is`;
     hintIcon = <Check size={14} />;
+  } else if (target) {
+    // Languages are the only time text goes to Google.
+    hint = "Text you translate is processed by Google";
   } else if (words > 0 && !picked) {
     hint = detected ? `Looks like ${detected.name}. Pick a voice above to play.` : "Pick a voice above to play.";
   }
@@ -220,13 +236,21 @@ export default function Home({
 
   const chooseFile = () => fileInput.current?.click();
 
-  const countEl = (
+  const countEl = unlockTime ? (
+    <span className="caption" style={{ color: "var(--ink-muted)" }}>
+      Back at {unlockTime}
+    </span>
+  ) : (
     <span className="caption" style={{ color: over ? "var(--danger)" : "var(--ink-muted)" }}>
       <b style={{ color: over ? undefined : "var(--ink)" }}>{fmt(words)}</b> / 20,000 words
     </span>
   );
 
-  const playButton = ready ? (
+  const playButton = unlockTime ? (
+    <button className={styles.play} aria-label={`Play, unavailable until ${unlockTime}`} disabled>
+      <Clock size={18} />
+    </button>
+  ) : ready ? (
     <button className={styles.play} aria-label="Play" onClick={onPlay}>
       <PlayIcon />
     </button>
@@ -248,7 +272,18 @@ export default function Home({
             <span className={styles.brandName}>Talk</span>
         </Link>
         <nav aria-label="Site" className={styles.nav}>
-          {/* The "texts read" counter arrives with Phase 6 (Supabase). */}
+          {total != null && total > 0 && (
+            <>
+              <span className={`${styles.navpill} ${styles.counter} subtle desk-only`}>
+                <span className={styles.dot} />
+                <b>{fmt(total)}</b> texts read
+              </span>
+              <span className={`${styles.navpill} ${styles.counter} caption phone-only`}>
+                <span className={styles.dot} />
+                <b>{fmt(total)}</b> read
+              </span>
+            </>
+          )}
           <button className={`${styles.navpill} subtle desk-only`} style={{ fontWeight: 600 }} onClick={openPanel}>
             <VoiceBars size={18} />
             All voices

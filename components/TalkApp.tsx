@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Home, { type PdfState } from "./Home";
 import Preparing, { type Step } from "./Preparing";
 import Reader from "./Reader";
@@ -12,6 +12,18 @@ import { VoiceChain } from "@/lib/speak";
 import { withTransition } from "@/lib/transition";
 import { alreadyIn, TARGETS } from "@/lib/languages";
 import { detectionKey, detectLanguage, Translation, type Detected } from "@/lib/translate";
+import {
+  addCounted,
+  countedSnapshot,
+  fetchTotal,
+  fingerprint,
+  limitedSnapshot,
+  logRead,
+  setLimitedUntil,
+  startRead,
+  subscribeReads,
+  type PlayLog,
+} from "@/lib/reads";
 
 type Screen = "home" | "preparing" | "reader";
 /** accent = read as written; translated = read the translation; asis = already in the chosen language */
@@ -24,6 +36,9 @@ type Session = {
   option: VoiceOption;
   translation: Translation | null;
   mode: ReadMode;
+  /** Proof this read passed the hourly limit, used once to log it (null: already counted / offline) */
+  ticket: string | null;
+  log: Omit<PlayLog, "engine">;
 };
 type StepState = Step["state"];
 type Prep = {
@@ -65,6 +80,10 @@ export default function TalkApp() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const pdfToken = useRef(0);
   const readToken = useRef(0);
+  const starting = useRef(false);
+  const logged = useRef(new Set<string>());
+  const [total, setTotal] = useState<number | null>(null);
+  const [currentPrint, setCurrentPrint] = useState<string | null>(null);
 
   const words = pdf ? (pdf.status === "ok" ? pdf.words : 0) : countWords(text);
   const source = pdf ? (pdf.status === "ok" ? pdf.text : "") : text;
@@ -87,6 +106,25 @@ export default function TalkApp() {
   }, []);
   const offline = new Set(Object.keys(offlineUntil).filter((id) => offlineUntil[id] > now));
 
+  // Usage: texts counted this visit, and whether this browser hit the hourly limit.
+  const countedJson = useSyncExternalStore(subscribeReads, countedSnapshot, () => "[]");
+  const counted = useMemo(() => new Set<string>(JSON.parse(countedJson)), [countedJson]);
+  const limitedUntil = useSyncExternalStore(subscribeReads, limitedSnapshot, () => 0);
+
+  // The public "texts read" total.
+  useEffect(() => {
+    fetchTotal().then(setTotal);
+  }, []);
+
+  // A fingerprint of the current text (made here, never sent), so a replay doesn't count twice.
+  useEffect(() => {
+    if (!source.trim()) return;
+    const t = setTimeout(() => fingerprint(source).then(setCurrentPrint), 300);
+    return () => clearTimeout(t);
+  }, [source]);
+  const thisTextCounted = !!source.trim() && !!currentPrint && counted.has(currentPrint);
+  const limited = limitedUntil > now && !thisTextCounted ? limitedUntil : null;
+
   // Can languages be offered here? (The server checks the country; nothing is stored.)
   useEffect(() => {
     fetch("/api/region")
@@ -95,10 +133,13 @@ export default function TalkApp() {
       .catch(() => undefined);
   }, []);
 
-  // Work out the text's language about a second after typing stops (straight away for PDFs).
+  // Work out the text's language, but only once a language option is picked (text goes to
+  // Google only for languages). About a second after typing stops; straight away for PDFs.
   const key = detectionKey(source);
+  const pickedOption = optionById(pick);
+  const wantsLanguage = pickedOption?.kind === "lang";
   useEffect(() => {
-    if (langState !== "ok" || countWords(key) < 3 || detected?.key === key) return;
+    if (!wantsLanguage || langState !== "ok" || countWords(key) < 3 || detected?.key === key) return;
     const t = setTimeout(
       () => {
         detectLanguage(key).then(
@@ -112,11 +153,10 @@ export default function TalkApp() {
       pdf ? 0 : 1000,
     );
     return () => clearTimeout(t);
-  }, [key, langState, detected?.key, pdf]);
+  }, [key, langState, detected?.key, pdf, wantsLanguage]);
   const detectedNow = detected && detected.key === key ? detected : null;
 
   // If languages become unavailable while one is picked, treat it as unpicked.
-  const pickedOption = optionById(pick);
   const activePick = pickedOption?.kind === "lang" && langState !== "ok" ? null : pick;
 
   const onFile = useCallback(async (file: File) => {
@@ -173,14 +213,15 @@ export default function TalkApp() {
     setOfflineNotice(id);
   }, []);
 
-  const onPlay = () => {
+  const onPlay = async () => {
     const option = optionById(activePick);
-    if (!option || !LIVE.has(option.id) || !option.chain.length) return;
+    if (!option || !LIVE.has(option.id) || !option.chain.length || starting.current) return;
     const lines = splitLines(source);
     if (!lines.length) return;
 
     const audio = audioRef.current ?? (audioRef.current = new Audio());
     unlockAudio(audio);
+    const input: "text" | "pdf" = pdf?.status === "ok" ? "pdf" : "text";
     const target = option.kind === "lang" ? TARGETS[option.id] : null;
     const voices = new VoiceChain(option.chain);
     const pdfPages = pdf?.status === "ok" ? pdf.pages : null;
@@ -200,7 +241,29 @@ export default function TalkApp() {
     window.history.pushState({ talk: "read" }, "");
     window.scrollTo(0, 0);
 
-    const begin = (mode: ReadMode, translation: Translation | null) => {
+    // First Play of a new text in this visit: check the hourly limit (while "Hold on small…"
+    // shows) and get a ticket to log it. Replays of the same text, whatever the voice, don't count.
+    let ticket: string | null = null;
+    starting.current = true;
+    try {
+      const print = await fingerprint(source);
+      if (!counted.has(print)) {
+        const r = await startRead();
+        if (readId !== readToken.current) return;
+        if (!r.allowed) {
+          setLimitedUntil(r.unlockAt);
+          goHome();
+          return;
+        }
+        ticket = r.ticket;
+        addCounted(print);
+      }
+    } finally {
+      starting.current = false;
+    }
+    if (readId !== readToken.current) return;
+
+    const begin = (mode: ReadMode, translation: Translation | null, lang: string | null = null) => {
       if (readId !== readToken.current) return;
       const player = new Player(
         lines,
@@ -213,7 +276,17 @@ export default function TalkApp() {
         audio,
         translation ? (i) => translation.translated[i] ?? lines[i] : undefined,
       );
-      setSession({ player, chain: voices, lines, option, title, translation, mode });
+      setSession({
+        player,
+        chain: voices,
+        lines,
+        option,
+        title,
+        translation,
+        mode,
+        ticket,
+        log: { option: option.id, words, input, lang },
+      });
       if (translation) setPrep((p) => p && { ...p, translate: "active", batch: `Lines 1–${translation.firstBatchSize}` });
       player.play();
     };
@@ -221,7 +294,9 @@ export default function TalkApp() {
     if (!target) return begin("accent", null);
 
     const decide = (d: Detected | null) =>
-      alreadyIn(d?.code, target) ? begin("asis", null) : begin("translated", new Translation(lines, option.id));
+      alreadyIn(d?.code, target)
+        ? begin("asis", null, d?.code ?? null)
+        : begin("translated", new Translation(lines, option.id), d?.code ?? null);
 
     if (known) return decide(known);
     detectLanguage(source).then(
@@ -255,6 +330,11 @@ export default function TalkApp() {
     if (!session || screen !== "preparing") return;
     const check = () => {
       const s = session.player.getSnapshot();
+      if (s.started && session.ticket && !logged.current.has(session.ticket)) {
+        logged.current.add(session.ticket);
+        logRead(session.ticket, { ...session.log, engine: session.chain.step?.engine ?? session.option.chain[0].engine });
+        setTotal((t) => (t == null ? t : t + 1));
+      }
       if (s.started) withTransition(() => setScreen("reader"));
       else if (s.failed && s.failReason === "offline") {
         markOffline(session.option.id);
@@ -366,6 +446,8 @@ export default function TalkApp() {
       offlineNotice={offlineNotice && offline.has(offlineNotice) ? offlineNotice : null}
       langState={langState}
       detected={detectedNow}
+      total={total}
+      limitedUntil={limited}
     />
   );
 }

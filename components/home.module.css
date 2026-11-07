@@ -92,6 +92,25 @@
   transform: scale(0.97);
 }
 
+/* "12,400 texts read" */
+.counter {
+  cursor: default;
+  color: var(--ink-muted);
+}
+
+.counter b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--success);
+  flex: none;
+}
+
 .navIcon {
   width: 40px;
   padding: 0;
@@ -617,6 +636,13 @@
   }
   .navIcon {
     padding: 0;
+  }
+  .dot {
+    width: 7px;
+    height: 7px;
+  }
+  .counter b {
+    font-weight: 700;
   }
   .main {
     padding: 12px 0 20px;
